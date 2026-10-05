@@ -15,7 +15,29 @@ export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"
 source "${DDS_ROOT}/setenv.sh"
 
 build_dir="${module_dir}/target/opendds"
+java_sources="${module_dir}/target/generated-sources/opendds"
+generation_fingerprint_file="${build_dir}/.generation-inputs.sha256"
+generation_fingerprint="$(
+  {
+    printf 'DDS_ROOT=%s\n' "${DDS_ROOT}"
+    printf 'architecture=%s\n' "$(uname -m)"
+    sha256sum \
+      "${module_dir}/src/main/idl/Learning.idl" \
+      "${module_dir}/src/main/mpc/Learning.mpc" \
+      "${BASH_SOURCE[0]}"
+  } | sha256sum | awk '{print $1}'
+)"
+
+# MPC and javac do not reliably remove outputs for deleted generated types.
+# A changed schema, MPC project, generator, OpenDDS installation, or host
+# architecture therefore invalidates every derived output before regeneration.
+if [[ ! -f "${generation_fingerprint_file}" ]] ||
+  [[ "$(<"${generation_fingerprint_file}")" != "${generation_fingerprint}" ]]; then
+  rm -rf "${build_dir}" "${java_sources}" \
+    "${module_dir}/target/classes/Learning" "${module_dir}/target/classes/native"
+fi
 mkdir -p "${build_dir}"
+
 for input_file in Learning.idl Learning.mpc; do
   case "${input_file}" in
     *.idl) source_file="${module_dir}/src/main/idl/${input_file}" ;;
@@ -41,7 +63,6 @@ fi
   make -j2
 )
 
-java_sources="${module_dir}/target/generated-sources/opendds"
 mkdir -p "${java_sources}"
 if [[ ! -d "${build_dir}/Learning" ]]; then
   echo "error: MPC build did not produce generated Learning Java sources" >&2
@@ -81,6 +102,8 @@ if ((${#native_libraries[@]} == 0)); then
   exit 1
 fi
 cp -au "${native_libraries[@]}" "${native_dir}/"
+
+printf '%s\n' "${generation_fingerprint}" > "${generation_fingerprint_file}"
 
 echo "Generated Java type support under ${java_sources}"
 echo "Packaged native type support under ${native_dir}"
