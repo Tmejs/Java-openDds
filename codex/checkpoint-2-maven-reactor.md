@@ -98,3 +98,12 @@ Independent review covered `6de280b..f96d359`.
 
 Review scope excluded x86-64 execution and application/transport behavior,
 which are planned for later checkpoints.
+
+## Post-review workspace hygiene correction
+
+The first post-merge workspace check showed that `target/` did not ignore
+nested module output in this Git setup. The rule is now `**/target/`, and
+`git check-ignore -v` confirmed that root, all five module, and deeper nested
+Maven target directories are ignored while source IDL, MPC, and POM files remain
+visible. Independent review of the follow-up commit `83a5fb7` found no Critical,
+Important, or Minor findings. `git diff --check` passed.
