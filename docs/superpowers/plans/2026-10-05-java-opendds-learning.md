@@ -209,9 +209,9 @@ private static long percentile(List<Long> sorted, double percentile) {
 
 ```java
 Learning.PingReply reply = new Learning.PingReply();
-reply.sequence = 2L;
+reply.sequenceNumber = 2L;
 assertTrue(PingReplyMatcher.matches(2L, reply));
-reply.sequence = 99L;
+reply.sequenceNumber = 99L;
 assertFalse(PingReplyMatcher.matches(2L, reply));
 ```
 - [ ] **Step 2: Run matcher test and confirm failure.** Run `mvn -pl ping-requester -Dtest=PingReplyMatcherTest test`. Expected: fail before the matcher exists.
@@ -270,7 +270,7 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 private static Learning.TelemetrySample sample(String id, long sequence) {
     Learning.TelemetrySample sample = new Learning.TelemetrySample();
     sample.device_id = id;
-    sample.sequence = sequence;
+    sample.sequenceNumber = sequence;
     return sample;
 }
 
