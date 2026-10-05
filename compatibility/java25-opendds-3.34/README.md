@@ -52,7 +52,12 @@ type-support JAR is
 `/opt/OpenDDS-3.34.0/java/tests/messenger/messenger_idl/messenger_idl_test.jar`;
 the native OpenDDS Java library is `libOpenDDS_DCPS_Java.so.3.34.0` under
 `/opt/OpenDDS-3.34.0/lib`. The maintained test controls its own Java class
-path and native library path. The probe prints the concise success markers on
+path and native library path. The generated Messenger native type-support
+library is
+`/opt/OpenDDS-3.34.0/java/tests/messenger/messenger_idl/libmessenger_idl_test.so.3.34.0`
+(with an unversioned symlink beside it); the test adds that generated library
+directory to its native search path through `PerlACE::add_lib_path(...)`. The
+probe prints the concise success markers on
 successful runs; if the harness fails, it prints the captured full test output
 to help diagnose the failure. The maintained test can also be run directly
 inside the image to inspect its complete JDK/JNI diagnostics.

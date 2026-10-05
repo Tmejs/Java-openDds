@@ -44,4 +44,15 @@ sample exchange and are documented in the probe README.
 
 ## Review
 
-Pending independent review before push.
+Independent whole-branch review against `main` found no Critical or Important
+issues. The reviewer reran the maintained Messenger exchange in a fresh
+container and confirmed exit 0 with `test PASSED.`. Two Minor findings were
+fixed before checkpoint completion: the README now records the generated
+Messenger native type-support library and its `PerlACE::add_lib_path(...)`
+setup, and `run.sh` rejects extra arguments after `--clean` before invoking
+Docker. The review did not assess cross-service discovery/transport behavior,
+request correlation, telemetry semantics, or amd64/cross-host compatibility;
+those remain future checkpoints or outside the verified ARM64 claim.
+The reviewer then rechecked these focused edits and confirmed the argument
+guard, generated-library details, evidence record, shell syntax, and whitespace
+validation; no findings remain.

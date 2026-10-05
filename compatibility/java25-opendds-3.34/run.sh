@@ -6,7 +6,7 @@ repo_root="$(cd -- "${script_dir}/../.." && pwd)"
 image_name="java-opendds-compatibility:java25-opendds-3.34"
 clean_build=false
 
-if [[ "${1:-}" == "--clean" ]]; then
+if [[ "${1:-}" == "--clean" && "$#" -eq 1 ]]; then
   clean_build=true
 elif [[ "$#" -ne 0 ]]; then
   echo "usage: $0 [--clean]" >&2
