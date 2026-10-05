@@ -91,12 +91,12 @@ For each numbered checkpoint after the bootstrap commit, first verify `main` is 
 - All modules compile with `<maven.compiler.release>25</maven.compiler.release>` and share the same test-library version through root dependency management.
 - The builder image reproduces the successful Task 1 environment; it must not silently change OpenDDS or JDK versions.
 
-- [ ] **Step 1: Add the reactor POM.** Set `packaging` to `pom`, set the five modules in dependency order, set Java release 25, and centralize JUnit Jupiter dependency management. Configure a current Maven Surefire version known to run on JDK 25 based on the successful probe.
-- [ ] **Step 2: Ignore generated output.** Add `.gitignore` entries for `target/`, MPC-generated Makefiles/workspaces, generated C++/Java type-support output, native `.so`/`.dll`/`.dylib`, and local environment files. Do not ignore handwritten `.idl`, `.mpc`, Docker, shell, or documentation sources.
-- [ ] **Step 3: Build the pinned application builder image.** Copy the proven Task 1 toolchain into `docker/opendds-builder/Dockerfile`; pin base image and OpenDDS source/archive version and expose the `DDS_ROOT`, `ACE_ROOT`, `TAO_ROOT`, `MPC_ROOT`, Java, and Maven environment needed by the probe.
-- [ ] **Step 4: Create empty module POMs.** Give each module `jar` packaging and stable coordinates under one project group/version. Add only the dependency edges specified in the interfaces; do not add web frameworks or runtime frameworks.
-- [ ] **Step 5: Verify reactor structure.** Run `mvn -version` and `mvn -q validate` inside the builder image. Expected: Maven runs on JDK 25 and all five modules are discovered without downloading or generating product code.
-- [ ] **Step 6: Check and commit the scaffold.** Run `git diff --check`, inspect module order and ignored generated outputs, and commit with `build: scaffold Java 25 Maven reactor`.
+- [x] **Step 1: Add the reactor POM.** Set `packaging` to `pom`, set the five modules in dependency order, set Java release 25, and centralize JUnit Jupiter dependency management. Configure a current Maven Surefire version known to run on JDK 25 based on the successful probe.
+- [x] **Step 2: Ignore generated output.** Add `.gitignore` entries for `target/`, MPC-generated Makefiles/workspaces, generated C++/Java type-support output, native `.so`/`.dll`/`.dylib`, and local environment files. Do not ignore handwritten `.idl`, `.mpc`, Docker, shell, or documentation sources.
+- [x] **Step 3: Build the pinned application builder image.** Copy the proven Task 1 toolchain into `docker/opendds-builder/Dockerfile`; pin base image and OpenDDS source/archive version and expose the `DDS_ROOT`, `ACE_ROOT`, `TAO_ROOT`, `MPC_ROOT`, Java, and Maven environment needed by the probe. The image installs the OpenDDS runtime JARs into its local Maven repository for normal transitive dependencies.
+- [x] **Step 4: Create empty module POMs.** Give each module `jar` packaging and stable coordinates under one project group/version. Add only the dependency edges specified in the interfaces; do not add web frameworks or runtime frameworks.
+- [x] **Step 5: Verify reactor structure.** Run `mvn -version` and `mvn -q validate` inside the builder image. Expected: Maven runs on JDK 25 and all five modules are discovered without downloading or generating product code.
+- [x] **Step 6: Check and commit the scaffold.** Run `git diff --check`, inspect module order and ignored generated outputs, and commit with `build: scaffold Java 25 Maven reactor`.
 
 ### Task 3: Generate and package OpenDDS types through the reactor
 
@@ -109,8 +109,8 @@ For each numbered checkpoint after the bootstrap commit, first verify `main` is 
 
 **Interfaces:**
 - IDL module `Learning` defines `PingRequest`, `PingReply`, and keyed `TelemetrySample`.
-- `PingRequest` and `PingReply` contain `long long sequence` and `string payload`; `PingReply` also contains `long long responderSequence` so the test can verify correlation.
-- `TelemetrySample` uses `string device_id` as its DDS key and contains `long long sequence`, `long long timestamp_epoch_millis`, `double temperature_c`, and `double humidity_percent`.
+- `PingRequest` and `PingReply` contain `long long sequenceNumber` and `string payload`; `PingReply` also contains `long long responderSequence` so the test can verify correlation. `sequence` is reserved by IDL and cannot be used as a field name.
+- `TelemetrySample` uses `string device_id` as its DDS key and contains `long long sequenceNumber`, `long long timestamp_epoch_millis`, `double temperature_c`, and `double humidity_percent`.
 - `generate.sh` is idempotent, runs from the repository root, fails on a non-zero MPC/`make` result, and writes artifacts only below `dds-types/target/`.
 
 The handwritten IDL shape is:
@@ -118,17 +118,17 @@ The handwritten IDL shape is:
 ```idl
 module Learning {
   @topic struct PingRequest {
-    long long sequence;
+    long long sequenceNumber;
     string payload;
   };
   @topic struct PingReply {
-    long long sequence;
+    long long sequenceNumber;
     string payload;
     long long responderSequence;
   };
   @topic struct TelemetrySample {
     @key string device_id;
-    long long sequence;
+    long long sequenceNumber;
     long long timestamp_epoch_millis;
     double temperature_c;
     double humidity_percent;
@@ -136,22 +136,22 @@ module Learning {
 };
 ```
 
-- [ ] **Step 1: Write the smallest generated-type test.** Add `GeneratedTypeSupportTest` that constructs a `Learning.PingRequest`, assigns sequence `1` and payload `"probe"`, and asserts both generated fields retain their values. Compile with generated classes on the Maven test classpath.
+- [x] **Step 1: Write the smallest generated-type test.** Add `GeneratedTypeSupportTest` that constructs a `Learning.PingRequest`, assigns sequence `1` and payload `"probe"`, and asserts both generated fields retain their values. Compile with generated classes on the Maven test classpath.
 - [ ] The assertion body is:
 
 ```java
 Learning.PingRequest request = new Learning.PingRequest();
-request.sequence = 1L;
+request.sequenceNumber = 1L;
 request.payload = "probe";
-assertEquals(1L, request.sequence);
+assertEquals(1L, request.sequenceNumber);
 assertEquals("probe", request.payload);
 ```
-- [ ] **Step 2: Run the test before generation.** Run `mvn -pl dds-types -Dtest=GeneratedTypeSupportTest test` in the builder image. Expected: FAIL because generated type support is not yet available.
-- [ ] **Step 3: Define the IDL schema.** Add the three agreed types and annotate each topic type using the annotation syntax verified by the Task 1 example. Mark `TelemetrySample.device_id` as the key.
-- [ ] **Step 4: Add the MPC project and generator script.** Follow the successful probe's export macro, `TypeSupport_Files`, Java flags, and output paths. Source OpenDDS's `setenv.sh`, run `mwc.pl -type gnuace`, then `make`; copy generated Java classes/JAR and native type-support library into module `target/` outputs consumed by Maven.
-- [ ] **Step 5: Wire generation into Maven.** Bind `generate.sh` to `generate-sources`, add generated classes with a pinned build-helper plugin if the probe output is source, and package the native library under `target/classes/native/linux-x86_64/`. Add OpenDDS runtime JARs to the compile/test classpath from the pinned builder installation using the paths verified in Task 1.
-- [ ] **Step 6: Run the generated-type test.** Run `mvn -pl dds-types -Dtest=GeneratedTypeSupportTest test`. Expected: PASS with the generated source compiled by Maven and no committed generated files.
-- [ ] **Step 7: Check and commit the module.** Run `git diff --check`, verify a clean rebuild regenerates outputs, and commit with `build: generate OpenDDS Java type support`.
+- [x] **Step 2: Run the test before generation.** Run `mvn -pl dds-types -Dtest=GeneratedTypeSupportTest test` in the builder image. Expected: FAIL because generated type support is not yet available.
+- [x] **Step 3: Define the IDL schema.** Add the three agreed types and annotate each topic type using the annotation syntax verified by the Task 1 example. Mark `TelemetrySample.device_id` as the key.
+- [x] **Step 4: Add the MPC project and generator script.** Follow the successful probe's export macro, `TypeSupport_Files`, Java flags, and output paths. Source OpenDDS's `setenv.sh`, run `mwc.pl -type gnuace`, then `make`; copy generated Java classes/JAR and native type-support library into module `target/` outputs consumed by Maven.
+- [x] **Step 5: Wire generation into Maven.** Bind `generate.sh` to `generate-sources`, add generated classes with a pinned build-helper plugin if the probe output is source, and package the native library under `target/classes/native/linux-x86_64/` or `target/classes/native/linux-aarch64/` selected from the builder architecture. Add OpenDDS runtime JARs to the compile/test classpath from the pinned builder installation using the paths verified in Task 1.
+- [x] **Step 6: Run the generated-type test.** Run `mvn -pl dds-types -Dtest=GeneratedTypeSupportTest test`. Expected: PASS with the generated source compiled by Maven and no committed generated files. The test also loads the packaged native type-support library.
+- [x] **Step 7: Check and commit the module.** Run `git diff --check`, verify a clean rebuild regenerates outputs, and commit with `build: generate OpenDDS Java type support`.
 
 ## Checkpoint 3: Implement and Measure Ping/Pong
 
@@ -209,9 +209,9 @@ private static long percentile(List<Long> sorted, double percentile) {
 
 ```java
 Learning.PingReply reply = new Learning.PingReply();
-reply.sequence = 2L;
+reply.sequenceNumber = 2L;
 assertTrue(PingReplyMatcher.matches(2L, reply));
-reply.sequence = 99L;
+reply.sequenceNumber = 99L;
 assertFalse(PingReplyMatcher.matches(2L, reply));
 ```
 - [ ] **Step 2: Run matcher test and confirm failure.** Run `mvn -pl ping-requester -Dtest=PingReplyMatcherTest test`. Expected: fail before the matcher exists.
@@ -270,7 +270,7 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 private static Learning.TelemetrySample sample(String id, long sequence) {
     Learning.TelemetrySample sample = new Learning.TelemetrySample();
     sample.device_id = id;
-    sample.sequence = sequence;
+    sample.sequenceNumber = sequence;
     return sample;
 }
 

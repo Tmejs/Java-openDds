@@ -1,0 +1,23 @@
+module Learning {
+  @topic
+  struct PingRequest {
+    long long sequenceNumber;
+    string payload;
+  };
+
+  @topic
+  struct PingReply {
+    long long sequenceNumber;
+    string payload;
+    long long responderSequence;
+  };
+
+  @topic
+  struct TelemetrySample {
+    @key string device_id;
+    long long sequenceNumber;
+    long long timestamp_epoch_millis;
+    double temperature_c;
+    double humidity_percent;
+  };
+};
