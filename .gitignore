@@ -1,0 +1,23 @@
+# Maven output (applies to the root project and every module)
+target/
+
+# Generated GNU make/workspace files created by MPC. Handwritten .mpc and .idl
+# inputs are intentionally not ignored.
+GNUmakefile
+GNUmakefile.*
+*.mw
+*.mwc.workspace
+
+# Native binaries and local environment files
+*.so
+*.so.*
+*.dll
+*.dylib
+.env
+.env.*
+!.env.example
+
+# IDE-local files
+.idea/
+.vscode/
+*.iml
