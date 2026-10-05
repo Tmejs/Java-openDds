@@ -167,7 +167,7 @@ assertEquals("probe", request.payload);
 - `LatencyStatistics.summary()` returns `Summary(int samples, long p50Nanos, long p95Nanos, long p99Nanos)` and throws `IllegalStateException` when empty.
 - Percentiles use nearest-rank: sort a copy and select index `ceil(p * n) - 1`.
 
-- [ ] **Step 1: Write tests for a single sample, unsorted samples, and nearest-rank boundaries.** For values `[40, 10, 30, 20]`, assert sample count 4 and p50/p95/p99 are 20/40/40. Assert one sample of 17 yields all percentiles equal to 17.
+- [x] **Step 1: Write tests for a single sample, unsorted samples, and nearest-rank boundaries.** For values `[40, 10, 30, 20]`, assert sample count 4 and p50/p95/p99 are 20/40/40. Assert one sample of 17 yields all percentiles equal to 17.
 - [ ] The core JUnit assertion is:
 
 ```java
@@ -177,8 +177,8 @@ for (long value : List.of(40L, 10L, 30L, 20L)) {
 }
 assertEquals(new LatencyStatistics.Summary(4, 20, 40, 40), statistics.summary());
 ```
-- [ ] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`. Expected: compilation/test failure because the API does not exist.
-- [ ] **Step 3: Implement the immutable summary and percentile calculation.** Use `Math.ceil(percentile * size) - 1`, sort a defensive copy, and reject non-positive measurements in `record`.
+- [x] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`. Expected: compilation/test failure because the API does not exist.
+- [x] **Step 3: Implement the immutable summary and percentile calculation.** Use `Math.ceil(percentile * size) - 1`, sort a defensive copy, and reject non-positive measurements in `record`.
 - [ ] The percentile helper is:
 
 ```java
@@ -187,8 +187,8 @@ private static long percentile(List<Long> sorted, double percentile) {
     return sorted.get(Math.max(0, index));
 }
 ```
-- [ ] **Step 4: Test empty and invalid input.** Assert `summary()` on no samples throws `IllegalStateException`; assert `record(0)` and `record(-1)` throw `IllegalArgumentException`.
-- [ ] **Step 5: Run the focused test and commit.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`, expected PASS; run `git diff --check`; commit `feat: calculate ping round-trip percentiles`.
+- [x] **Step 4: Test empty and invalid input.** Assert `summary()` on no samples throws `IllegalStateException`; assert `record(0)` and `record(-1)` throw `IllegalArgumentException`.
+- [x] **Step 5: Run the focused test and commit.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`, expected PASS; run `git diff --check`; commit `feat: calculate ping round-trip percentiles`.
 
 ### Task 5: Add the ping requester and responder
 
