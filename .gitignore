@@ -1,5 +1,5 @@
 # Maven output (applies to the root project and every module)
-target/
+**/target/
 
 # Generated GNU make/workspace files created by MPC. Handwritten .mpc and .idl
 # inputs are intentionally not ignored.
