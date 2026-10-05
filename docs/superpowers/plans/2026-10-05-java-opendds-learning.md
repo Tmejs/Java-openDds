@@ -167,7 +167,7 @@ assertEquals("probe", request.payload);
 - `LatencyStatistics.summary()` returns `Summary(int samples, long p50Nanos, long p95Nanos, long p99Nanos)` and throws `IllegalStateException` when empty.
 - Percentiles use nearest-rank: sort a copy and select index `ceil(p * n) - 1`.
 
-- [ ] **Step 1: Write tests for a single sample, unsorted samples, and nearest-rank boundaries.** For values `[40, 10, 30, 20]`, assert sample count 4 and p50/p95/p99 are 20/40/40. Assert one sample of 17 yields all percentiles equal to 17.
+- [x] **Step 1: Write tests for a single sample, unsorted samples, and nearest-rank boundaries.** For values `[40, 10, 30, 20]`, assert sample count 4 and p50/p95/p99 are 20/40/40. Assert one sample of 17 yields all percentiles equal to 17.
 - [ ] The core JUnit assertion is:
 
 ```java
@@ -177,8 +177,8 @@ for (long value : List.of(40L, 10L, 30L, 20L)) {
 }
 assertEquals(new LatencyStatistics.Summary(4, 20, 40, 40), statistics.summary());
 ```
-- [ ] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`. Expected: compilation/test failure because the API does not exist.
-- [ ] **Step 3: Implement the immutable summary and percentile calculation.** Use `Math.ceil(percentile * size) - 1`, sort a defensive copy, and reject non-positive measurements in `record`.
+- [x] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`. Expected: compilation/test failure because the API does not exist.
+- [x] **Step 3: Implement the immutable summary and percentile calculation.** Use `Math.ceil(percentile * size) - 1`, sort a defensive copy, and reject non-positive measurements in `record`.
 - [ ] The percentile helper is:
 
 ```java
@@ -187,8 +187,8 @@ private static long percentile(List<Long> sorted, double percentile) {
     return sorted.get(Math.max(0, index));
 }
 ```
-- [ ] **Step 4: Test empty and invalid input.** Assert `summary()` on no samples throws `IllegalStateException`; assert `record(0)` and `record(-1)` throw `IllegalArgumentException`.
-- [ ] **Step 5: Run the focused test and commit.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`, expected PASS; run `git diff --check`; commit `feat: calculate ping round-trip percentiles`.
+- [x] **Step 4: Test empty and invalid input.** Assert `summary()` on no samples throws `IllegalStateException`; assert `record(0)` and `record(-1)` throw `IllegalArgumentException`.
+- [x] **Step 5: Run the focused test and commit.** Run `mvn -pl ping-requester -Dtest=LatencyStatisticsTest test`, expected PASS; run `git diff --check`; commit `feat: calculate ping round-trip percentiles`.
 
 ### Task 5: Add the ping requester and responder
 
@@ -197,15 +197,16 @@ private static long percentile(List<Long> sorted, double percentile) {
 - Create: `ping-requester/src/main/java/io/github/tmejs/opendds/ping/PingReplyMatcher.java`
 - Create: `ping-requester/src/test/java/io/github/tmejs/opendds/ping/PingReplyMatcherTest.java`
 - Create: `ping-responder/src/main/java/io/github/tmejs/opendds/ping/PingResponder.java`
+- Create: `dds-types/src/main/java/io/github/tmejs/opendds/types/NativeTypeSupport.java`
 - Modify: `ping-requester/pom.xml`, `ping-responder/pom.xml`
 
 **Interfaces:**
-- `PingRequester.main(String[] args)` accepts `--domain`, `--count`, `--payload-bytes`, and `--timeout-seconds`; invalid or missing values exit with a usage error.
-- `PingResponder.main(String[] args)` accepts `--domain` and responds to each request with the same sequence/payload and a matching responder sequence.
+- `PingRequester.main(String[] args)` accepts `--domain`, `--count`, `--warmup-count`, `--payload-bytes`, and `--timeout-seconds`; invalid or missing values exit with a usage error.
+- `PingResponder.main(String[] args)` accepts `--domain` and optional finite `--count` (zero means continue until shutdown), and responds to each request with the same sequence/payload and a matching responder sequence.
 - The requester sends one outstanding request at a time. `PingReplyMatcher.matches(long expectedSequence, Learning.PingReply reply)` returns true only when the reply sequence matches; unrelated replies are ignored and logged.
 
-- [ ] **Step 1: Write tests for reply correlation.** Verify a reply with the expected sequence is accepted and one with a different sequence is ignored.
-- [ ] The test's essential assertions are:
+- [x] **Step 1: Write tests for reply correlation.** Verify a reply with the expected sequence is accepted and one with a different sequence is ignored.
+- [x] The test's essential assertions are:
 
 ```java
 Learning.PingReply reply = new Learning.PingReply();
@@ -214,12 +215,12 @@ assertTrue(PingReplyMatcher.matches(2L, reply));
 reply.sequenceNumber = 99L;
 assertFalse(PingReplyMatcher.matches(2L, reply));
 ```
-- [ ] **Step 2: Run matcher test and confirm failure.** Run `mvn -pl ping-requester -Dtest=PingReplyMatcherTest test`. Expected: fail before the matcher exists.
-- [ ] **Step 3: Implement the reply matcher and timeout result.** Use a `BlockingQueue<Learning.PingReply>` to transfer listener callbacks to the requester thread; wait with the configured timeout and accept only the expected sequence. A timeout reports the expected sequence and elapsed wait.
-- [ ] **Step 4: Implement the responder using generated `PingRequest`/`PingReply` types.** Follow the verified OpenDDS Messenger lifecycle: create participant, register generated type support, create topic, create reader/writer, wait for data, reply, then delete contained entities and participant in `finally`.
-- [ ] **Step 5: Implement the requester and monotonic timing.** Record `System.nanoTime()` immediately before writing each request; compute elapsed time when its matching reply is received. Perform a configurable warm-up count, exclude warm-up samples from `LatencyStatistics`, enforce the overall reply timeout, then print count and p50/p95/p99 in both milliseconds and nanoseconds.
-- [ ] **Step 6: Test no-responder behavior.** Run requester with no responder and a two-second timeout. Expected: clear non-zero exit, no hang, and a report showing zero received replies. Run a requester/responder exchange with count 10; expected: ten matched replies and a summary.
-- [ ] **Step 7: Run module checks and commit.** Run `mvn -pl ping-requester,ping-responder -am verify` inside the builder. Expected: all focused tests pass and the sample exchange succeeds. Run `git diff --check`; commit `feat: add DDS ping requester and responder`.
+- [x] **Step 2: Run matcher test and confirm failure.** Run `mvn -pl ping-requester -Dtest=PingReplyMatcherTest test`. Expected: fail before the matcher exists.
+- [x] **Step 3: Implement the reply matcher and timeout result.** Use a `BlockingQueue<Learning.PingReply>` to transfer listener callbacks to the requester thread; wait with the configured timeout and accept only the expected sequence. A timeout reports the expected sequence and elapsed wait.
+- [x] **Step 4: Implement the responder using generated `PingRequest`/`PingReply` types.** Follow the verified OpenDDS Messenger lifecycle: create participant, register generated type support, create topic, create reader/writer, wait for data, reply, then delete contained entities and participant in `finally`.
+- [x] **Step 5: Implement the requester and monotonic timing.** Record `System.nanoTime()` immediately before writing each request; compute elapsed time when its matching reply is received. Perform a configurable warm-up count, exclude warm-up samples from `LatencyStatistics`, enforce the overall reply timeout, then print count and p50/p95/p99 in both milliseconds and nanoseconds.
+- [x] **Step 6: Test no-responder behavior.** Run requester with no responder and a two-second timeout. Expected: clear non-zero exit, no hang, and a report showing zero received replies. Run a requester/responder exchange with count 10; expected: ten matched replies and a summary.
+- [x] **Step 7: Run module checks and commit.** Run `mvn -pl ping-requester,ping-responder -am verify` inside the builder. Expected: all focused tests pass and the sample exchange succeeds. Run `git diff --check`; commit `feat: add DDS ping requester and responder`.
 
 ## Checkpoint 4: Add Shared-Memory and Network Run Modes
 
