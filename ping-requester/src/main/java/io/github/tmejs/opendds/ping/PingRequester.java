@@ -300,27 +300,8 @@ public final class PingRequester {
         }
 
         PingReply awaitReply(long expectedSequence, int timeoutSeconds) throws Exception {
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
-            while (true) {
-                RuntimeException callbackFailure = failure.get();
-                if (callbackFailure != null) {
-                    throw callbackFailure;
-                }
-                long remaining = deadline - System.nanoTime();
-                if (remaining <= 0) {
-                    throw new ReplyTimeoutException("timed out waiting for the matching PingReply");
-                }
-                PingReply reply = replies.poll(remaining, TimeUnit.NANOSECONDS);
-                if (reply == null) {
-                    throw new ReplyTimeoutException("timed out waiting for the matching PingReply");
-                }
-                if (PingReplyMatcher.matches(expectedSequence, reply)) {
-                    return reply;
-                }
-                System.err.printf(Locale.ROOT,
-                        "Ignoring unrelated PingReply sequence=%d while waiting for sequence=%d%n",
-                        reply.sequenceNumber, expectedSequence);
-            }
+            return PingReplyWaiter.await(replies, failure, expectedSequence,
+                    TimeUnit.SECONDS.toNanos(timeoutSeconds), System::nanoTime);
         }
 
         @Override public void on_requested_deadline_missed(DataReader reader, DDS.RequestedDeadlineMissedStatus status) { }
@@ -393,12 +374,6 @@ public final class PingRequester {
         static String usage() {
             return "Usage: PingRequester [--domain N] [--count N] [--warmup-count N] "
                     + "[--payload-bytes N] [--timeout-seconds N] [-DCPS... OpenDDS options]";
-        }
-    }
-
-    private static final class ReplyTimeoutException extends Exception {
-        ReplyTimeoutException(String message) {
-            super(message);
         }
     }
 
