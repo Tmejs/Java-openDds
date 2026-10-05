@@ -1,0 +1,18 @@
+project : dcps, dcps_tcp, dcps_test_java {
+  sharedname = learning_types
+
+  idlflags += -Wb,stub_export_include=learning_types_Export.h \
+              -Wb,stub_export_macro=learning_types_Export
+  dcps_ts_flags += -Wb,export_macro=learning_types_Export
+  idl2jniflags += -Wb,stub_export_include=learning_types_Export.h \
+                  -Wb,stub_export_macro=learning_types_Export
+  dynamicflags += LEARNING_TYPES_BUILD_DLL
+
+  specific {
+    jarname = learning_types
+  }
+
+  TypeSupport_Files {
+    Learning.idl
+  }
+}
