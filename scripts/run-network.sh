@@ -50,9 +50,9 @@ else
 fi
 export DDS_COUNT="$COUNT" DDS_TIMEOUT_SECONDS="$TIMEOUT_SECONDS" DDS_DOMAIN="$DOMAIN"
 export DDS_APPLICATION_TIMEOUT_SECONDS=$(( TIMEOUT_SECONDS > 5 ? TIMEOUT_SECONDS - 5 : 1 ))
-export DDS_REQUESTER_DOMAIN DDS_RESPONDER_DOMAIN
+export DDS_REQUESTER_DOMAIN="$REQUESTER_DOMAIN" DDS_RESPONDER_DOMAIN="$RESPONDER_DOMAIN"
 printf 'RUN_MODE=network DATA_TRANSPORT=RTPS/UDP scenario=%s requester_domain=%s responder_domain=%s count=%s timeout_seconds=%s application_timeout_seconds=%s\n' \
   "$SCENARIO" "$REQUESTER_DOMAIN" "$RESPONDER_DOMAIN" "$COUNT" "$TIMEOUT_SECONDS" "$DDS_APPLICATION_TIMEOUT_SECONDS"
 docker compose --project-name java-opendds-network \
   -f "$ROOT_DIR/docker/compose.network.yml" \
-  up --no-build --abort-on-container-exit --exit-code-from "$exit_service" "${run_services[@]}"
+  up --no-build --pull never --abort-on-container-exit --exit-code-from "$exit_service" "${run_services[@]}"

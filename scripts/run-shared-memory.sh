@@ -46,4 +46,4 @@ printf 'RUN_MODE=shared-memory DATA_TRANSPORT=shmem scenario=%s domain=%s count=
   "$SCENARIO" "$DOMAIN" "$COUNT" "$TIMEOUT_SECONDS" "$APPLICATION_TIMEOUT_SECONDS"
 docker compose --project-name java-opendds-shared \
   -f "$ROOT_DIR/docker/compose.shared-memory.yml" \
-  up --no-build --abort-on-container-exit --exit-code-from "$service" "$service"
+  up --no-build --pull never --abort-on-container-exit --exit-code-from "$service" "$service"

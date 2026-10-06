@@ -227,10 +227,13 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 ### Task 6: Configure and smoke-test the two transports
 
 **Files:**
+- Create: `dds-types/src/main/java/io/github/tmejs/opendds/types/ReliableEndpointQos.java`
+- Modify: `ping-requester/src/main/java/io/github/tmejs/opendds/ping/PingRequester.java`
+- Modify: `ping-responder/src/main/java/io/github/tmejs/opendds/ping/PingResponder.java`
 - Create: `docker/compose.shared-memory.yml`
 - Create: `docker/compose.network.yml`
 - Create: `docker/config/shared-memory.ini`
-- Create: `docker/config/network-rtps.ini`
+- Create: `docker/config/network-rtps-{ping-requester,ping-responder,telemetry-device,telemetry-monitor}.ini`
 - Create: `scripts/run-shared-memory.sh`
 - Create: `scripts/run-network.sh`
 - Create: `scripts/smoke-test.sh`
@@ -238,12 +241,13 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 **Interfaces:**
 - Shared-memory mode runs the ping requester/responder or telemetry device/monitor JVM processes inside one Linux container and selects the OpenDDS `shmem` data transport.
 - Network mode runs those same roles as separate Compose services and selects RTPS over UDP with explicit reachable service addresses/ports; use static peers if multicast discovery fails in the tested Docker network.
+- Ping request and reply endpoints use reliable QoS so a first best-effort UDP loss cannot invalidate the round-trip scenario after discovery completes.
 - `run-shared-memory.sh` and `run-network.sh` accept `--scenario ping|telemetry`, print the selected configuration, and exit non-zero when Compose or an application process fails.
 
 - [x] **Step 1: Write `smoke-test.sh` before the Compose files.** For ping, run `docker compose -f docker/compose.shared-memory.yml config` and `docker compose -f docker/compose.network.yml config`; for telemetry, assert the same files define `telemetry-lab`, `telemetry-device`, and `telemetry-monitor`. Run each scenario with 10 samples and a 30-second timeout; check expected counts and selected transport labels in both logs.
 - [x] **Step 2: Run the smoke test before configurations exist.** Run `./scripts/smoke-test.sh`; expected: non-zero with a message naming the missing Compose configuration or service.
 - [x] **Step 3: Add shared-memory configuration.** Use one service/container with both Java processes and a shared `shmem` instance. Keep discovery configuration explicit and separate from the data transport. Add a shell supervisor that traps INT/TERM, terminates the child JVM, waits for it, and returns the failing child's exit status.
-- [x] **Step 4: Add network configuration.** Put two services on one named Docker bridge network; use RTPS discovery and RTPS/UDP data transport. Configure advertised addresses to resolve between service names. If multicast discovery fails in this network, add explicit static peers and document why.
+- [x] **Step 4: Add network configuration.** Put two services on one named Docker bridge network; use RTPS discovery and RTPS/UDP data transport. Configure advertised addresses to resolve between service names. Use per-service configuration files with explicit unicast SPDP peers because multicast discovery is not stable across Docker bridge implementations.
 - [x] **Step 5: Add run scripts.** For `--scenario ping`, `run-shared-memory.sh` uses `--exit-code-from ping-lab`, and `run-network.sh` uses `--exit-code-from ping-requester`. For `--scenario telemetry`, use `telemetry-lab` and `telemetry-monitor`. Each passes `--count` and `--timeout-seconds` through environment variables and preserves Compose's exit code.
 - [x] **Step 6: Verify both paths and transport selection.** Run `./scripts/smoke-test.sh`. Expected: ping exchanges exactly 10 replies and telemetry receives 10 samples per mode; logs/configuration identify `shmem` in shared-memory mode and RTPS/UDP in network mode. Also run the network services with different domain IDs; expected: no match and requester timeout.
 - [x] **Step 7: Check and commit the transport setup.** Run `git diff --check`, inspect both Compose networks and process cleanup, then commit `feat: add OpenDDS shared-memory and network demos`.

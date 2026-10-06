@@ -1,7 +1,7 @@
 package io.github.tmejs.opendds.ping;
 
-import DDS.DATAREADER_QOS_DEFAULT;
-import DDS.DATAWRITER_QOS_DEFAULT;
+import DDS.DataReaderQos;
+import DDS.DataWriterQos;
 import DDS.DomainParticipant;
 import DDS.DomainParticipantFactory;
 import DDS.PARTICIPANT_QOS_DEFAULT;
@@ -26,6 +26,7 @@ import OpenDDS.DCPS.TheParticipantFactory;
 import OpenDDS.DCPS.TheServiceParticipant;
 import OpenDDS.DCPS.DEFAULT_STATUS_MASK;
 import io.github.tmejs.opendds.types.NativeTypeSupport;
+import io.github.tmejs.opendds.types.ReliableEndpointQos;
 import org.omg.CORBA.StringSeqHolder;
 
 import java.util.ArrayList;
@@ -94,8 +95,9 @@ public final class PingResponder {
                     PUBLISHER_QOS_DEFAULT.get(), null, DEFAULT_STATUS_MASK.value), "create publisher");
             Subscriber subscriber = requireEntity(participant.create_subscriber(
                     SUBSCRIBER_QOS_DEFAULT.get(), null, DEFAULT_STATUS_MASK.value), "create subscriber");
+            DataWriterQos writerQos = ReliableEndpointQos.writer(publisher);
             PingReplyDataWriter writer = PingReplyDataWriterHelper.narrow(
-                    publisher.create_datawriter(replyTopic, DATAWRITER_QOS_DEFAULT.get(),
+                    publisher.create_datawriter(replyTopic, writerQos,
                             null, DEFAULT_STATUS_MASK.value));
             if (writer == null) {
                 throw new IllegalStateException("could not create or narrow PingReply writer");
@@ -107,8 +109,9 @@ public final class PingResponder {
 
             CountDownLatch finished = new CountDownLatch(1);
             RequestListener listener = new RequestListener(writer, instanceHandle, options.count, finished);
+            DataReaderQos readerQos = ReliableEndpointQos.reader(subscriber);
             PingRequestDataReader reader = PingRequestDataReaderHelper.narrow(
-                    subscriber.create_datareader(requestTopic, DATAREADER_QOS_DEFAULT.get(),
+                    subscriber.create_datareader(requestTopic, readerQos,
                             listener, DEFAULT_STATUS_MASK.value));
             if (reader == null) {
                 throw new IllegalStateException("could not create or narrow PingRequest reader");

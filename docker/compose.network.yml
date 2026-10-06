@@ -6,7 +6,7 @@ services:
     volumes:
       - ..:/workspace:ro
     environment:
-      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps.ini
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-ping-requester.ini
       DDS_DOMAIN: "${DDS_REQUESTER_DOMAIN:-42}"
       DDS_COUNT: "${DDS_COUNT:-10}"
       DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
@@ -38,7 +38,7 @@ services:
     volumes:
       - ..:/workspace:ro
     environment:
-      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps.ini
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-ping-responder.ini
       DDS_DOMAIN: "${DDS_RESPONDER_DOMAIN:-42}"
     entrypoint: ["/workspace/scripts/run-dds-java.sh"]
     command:
@@ -62,7 +62,7 @@ services:
     volumes:
       - ..:/workspace:ro
     environment:
-      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps.ini
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-telemetry-device.ini
       DDS_DOMAIN: "${DDS_DOMAIN:-42}"
       DDS_COUNT: "${DDS_COUNT:-10}"
     entrypoint: ["/workspace/scripts/run-dds-java-and-hold.sh"]
@@ -91,7 +91,7 @@ services:
     volumes:
       - ..:/workspace:ro
     environment:
-      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps.ini
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-telemetry-monitor.ini
       DDS_DOMAIN: "${DDS_DOMAIN:-42}"
       DDS_COUNT: "${DDS_COUNT:-10}"
       DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"

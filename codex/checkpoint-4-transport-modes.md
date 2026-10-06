@@ -15,10 +15,14 @@ applications.
   application-data transport. The supervisor waits for the repository IOR,
   handles INT/TERM, reaps child processes, and returns application failures.
 - Network mode runs requester and responder as separate Compose services.
-  `DEFAULT_RTPS` performs discovery and a named `rtps_udp` instance carries
-  application samples over the project-scoped Docker bridge. Each role supplies
-  its Compose DNS name through `-DCPSDefaultAddress`; the verified bridge
-  supports RTPS multicast discovery, so no static peer list is needed.
+  RTPS performs discovery and a named `rtps_udp` instance carries application
+  samples over the project-scoped Docker bridge. Each role supplies its Compose
+  DNS name through `-DCPSDefaultAddress`. Scenario-specific configurations list
+  both service names as explicit SPDP unicast destinations and disable SEDP
+  multicast, avoiding host-dependent Docker bridge multicast behavior.
+- Ping request and reply endpoints use reliable QoS. A shared helper initializes
+  the complete Java QoS object graph, retrieves the OpenDDS publisher/subscriber
+  defaults through JNI, and changes only the reliability kind.
 - Both public launchers validate scenario/count/timeout/domain inputs, build
   the runtime unless `DDS_SKIP_BUILD=1`, print the selected mode and transport,
   and use Compose `--exit-code-from` for the scenario's observed process.
@@ -30,7 +34,8 @@ applications.
   publish run so monitor completion, rather than publisher exit, determines
   success.
 - The smoke gate validates required services, builds once, requires exactly 10
-  replies in each ping topology, checks the printed transport label, and proves
+  replies in each ping topology and again in network domain 7, checks the
+  printed transport label and selected INI discovery/data settings, and proves
   domain isolation with an expected network requester timeout.
 - `docker/config/README.md` explains discovery versus data transport, the two
   topologies, the pinned shared-memory discovery decision, and interpretation
@@ -60,8 +65,8 @@ pinned OpenDDS 3.34.0 Java environment, not a general OpenDDS limitation.
   with an error naming `docker/compose.shared-memory.yml`.
 - `./scripts/smoke-test.sh` — passed. Shared memory reported
   `PING_SUMMARY status=OK received=10 expected=10`; network RTPS/UDP reported
-  the same exact count; requester domain 43 versus responder domain 42 exited
-  non-zero with `status=TIMEOUT received=0 expected=1`.
+  the same exact count in domains 42 and 7; requester domain 43 versus responder
+  domain 42 exited non-zero with `status=TIMEOUT received=0 expected=1`.
 - `mvn --batch-mode --no-transfer-progress clean verify` in
   `java-opendds-builder:25-3.34.0` — passed across all six reactor projects;
   all 10 current JUnit tests passed.
@@ -72,6 +77,18 @@ pinned OpenDDS 3.34.0 Java environment, not a general OpenDDS limitation.
   three-second deadline exited non-zero at the deadline and left no running
   Compose service.
 - `git diff --check` — passed.
+- Ten consecutive network runs alternating domains 42 and 7 each completed all
+  10 exchanges after the explicit-peer and reliable-QoS fixes.
+
+A later fresh gate exposed that RTPS discovery multicast could stop traversing
+the Docker bridge even though it had passed earlier on the same host. The final
+configuration uses explicit unicast SPDP peers and unicast SEDP; the full gate
+was rerun after that reliability fix. This gate also caught and fixed a launcher
+variable-name error that had made explicit requester/responder domains fall
+back to 42. Repeated runs then exposed a separate best-effort startup race:
+endpoints matched, but the first RTPS/UDP sample could be lost. Both ping
+directions now use reliable QoS so OpenDDS retransmits instead of turning a
+healthy run into a timeout.
 
 Telemetry end-to-end execution is deferred to checkpoint 5 because
 `TelemetryDevice` and `TelemetryMonitor` are created there. This checkpoint
@@ -91,4 +108,10 @@ independent review confirmed that all five findings are resolved and that no
 Critical or Important findings remain. It identified one Minor documentation
 overstatement about the diagnostic margin because each DDS wait has its own
 timeout; the wording now describes that margin as best-effort and the outer
-deadline as authoritative.
+deadline as authoritative. A late reliability review found only Minor record
+and smoke-coverage gaps; the plan now lists the per-service INI files, the smoke
+gate verifies their Compose routing and runtime domain selection, and this
+record includes the alternating-domain stress run. Final independent review
+also checked the complete Java QoS object graph, default retrieval, reliability
+override, four endpoint integrations, per-service discovery files, and smoke
+assertions; it reported no Critical or Important findings.

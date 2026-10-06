@@ -25,14 +25,35 @@ and shared memory cannot be combined.
 
 ## Network mode
 
-[`network-rtps.ini`](network-rtps.ini) uses `DEFAULT_RTPS` discovery and an
-`rtps_udp` application-data transport. Compose runs each Java role as a
-separate service on the `dds-lab` bridge and passes its stable Compose DNS name
-as `-DCPSDefaultAddress`. OpenDDS resolves that explicit, peer-reachable name to
-the service's bridge address and probes the RTPS-defined UDP port. RTPS
-discovery multicast worked on the verified Docker bridge, so this configuration
-needs no static peer list. Application data is unicast because
-`use_multicast=0` applies to the `rtps_udp_data` transport instance.
+The four `network-rtps-*.ini` files use RTPS discovery and an `rtps_udp`
+application-data transport. Each file belongs to one Compose service so its
+`SpdpLocalAddress` can use that service's stable DNS name. Compose also passes
+the same peer-reachable name as `-DCPSDefaultAddress`, and OpenDDS resolves it
+to the service's bridge address before probing the RTPS-defined UDP ports.
+
+Docker bridge multicast behavior varies by host. Each scenario therefore lists
+its two service names in `SpdpSendAddrs`, giving SPDP deterministic unicast
+destinations on fixed port `17910`; each role binds that port on its own named
+bridge address, so the arrangement works with any supported DDS domain.
+`SedpMulticast=0` keeps endpoint discovery on unicast as well. These settings
+affect RTPS discovery. Application data independently uses the `rtps_udp_data`
+transport; its `use_multicast=0` setting also selects unicast.
+
+## Ping reliability QoS
+
+The ping requester and responder use reliable QoS for both request and reply
+endpoints. With best-effort QoS, discovery can report matched endpoints before
+the first UDP sample has a usable path, so losing that sample makes a healthy
+scenario look like a timeout. Reliable delivery lets OpenDDS acknowledge and
+retransmit that sample, which is the appropriate behavior for this measurement
+tool.
+
+OpenDDS Java's mutable QoS holders must contain every nested policy object
+before the JNI call fills in the publisher or subscriber defaults.
+`ReliableEndpointQos` follows the maintained Java Messenger example: it creates
+that complete object graph, asks OpenDDS for the defaults, and changes only the
+reliability kind. This avoids copying a large set of default values into the
+application and keeps the request and reply policies compatible.
 
 Both modes use DDS domain IDs as an isolation boundary. Endpoints with different
 domain IDs do not match; the smoke test demonstrates this by expecting the
@@ -49,11 +70,15 @@ Run the ping scenario from the repository root:
 The launchers print `RUN_MODE`, `DATA_TRANSPORT`, and the selected domains so a
 captured result identifies the topology that produced it. `--timeout-seconds`
 is an overall scenario deadline enforced inside the observed container. The
-ping requester's association/reply timeout is five seconds shorter (or one
-second for very short runs), which usually leaves time to print diagnostics
+builder image is local to this project, so Compose is instructed never to pull
+that image from a registry. The ping requester's association/reply timeout is
+five seconds shorter (or one second for very short runs), which usually leaves
+time to print diagnostics
 and shut down. Each DDS association and reply wait gets that application
 timeout separately, so the outer scenario deadline remains authoritative and
 can interrupt a later wait.
 Latency values include Java, JNI, OpenDDS, discovery state, scheduling, and
-container overhead; use them to compare runs on the same host rather than as a
-hardware-independent benchmark.
+container overhead. Reliable RTPS setup can make the first measured exchange
+an outlier; use `--warmup-count` when comparing steady-state results. Compare
+runs on the same host rather than treating them as a hardware-independent
+benchmark.
