@@ -16,11 +16,18 @@ applications.
   handles INT/TERM, reaps child processes, and returns application failures.
 - Network mode runs requester and responder as separate Compose services.
   `DEFAULT_RTPS` performs discovery and a named `rtps_udp` instance carries
-  application samples over the project-scoped Docker bridge. The verified
-  bridge supports RTPS multicast discovery, so no static peer list is needed.
+  application samples over the project-scoped Docker bridge. Each role supplies
+  its Compose DNS name through `-DCPSDefaultAddress`; the verified bridge
+  supports RTPS multicast discovery, so no static peer list is needed.
 - Both public launchers validate scenario/count/timeout/domain inputs, build
   the runtime unless `DDS_SKIP_BUILD=1`, print the selected mode and transport,
   and use Compose `--exit-code-from` for the scenario's observed process.
+- Each observed service has an in-container overall deadline. The requester
+  timeout is shorter than that deadline so it can emit failure diagnostics and
+  clean up before the container deadline. The shared supervisor tracks both
+  JVM PIDs and the InfoRepo PID for ordered signal handling. The finite network
+  telemetry device holds after a successful publish run so monitor completion,
+  rather than publisher exit, determines success.
 - The smoke gate validates required services, builds once, requires exactly 10
   replies in each ping topology, checks the printed transport label, and proves
   domain isolation with an expected network requester timeout.
@@ -60,6 +67,9 @@ pinned OpenDDS 3.34.0 Java environment, not a general OpenDDS limitation.
 - `bash -n scripts/*.sh` — passed.
 - Both Compose files passed `docker compose ... config --quiet`.
 - All files in `scripts/` have their owner executable bit set.
+- A forced shared-memory run with one million requested exchanges and a
+  three-second deadline exited non-zero at the deadline and left no running
+  Compose service.
 - `git diff --check` — passed.
 
 Telemetry end-to-end execution is deferred to checkpoint 5 because
@@ -68,4 +78,12 @@ validates their Compose service declarations and launcher routing only.
 
 ## Review
 
-Independent review is pending.
+Initial independent review found four Important issues and one Minor issue:
+network telemetry could stop on normal device exit before monitor completion;
+the shared supervisor did not track its foreground JVM; the scenario timeout
+was not an overall deadline; the network roles did not explicitly select their
+reachable addresses; and the smoke gate only checked a printed transport
+label. The fixes add a successful-device hold wrapper, track both shared JVMs,
+enforce in-container deadlines with diagnostic grace, pass Compose DNS names
+as `DCPSDefaultAddress`, and verify each INI's `transport_type`. Follow-up
+independent review is pending.

@@ -5,23 +5,38 @@ SCENARIO="${DDS_SCENARIO:-${1:-}}"
 DOMAIN="${DDS_DOMAIN:-42}"
 COUNT="${DDS_COUNT:-10}"
 TIMEOUT_SECONDS="${DDS_TIMEOUT_SECONDS:-30}"
+APPLICATION_TIMEOUT_SECONDS="${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
 WARMUP_COUNT="${DDS_WARMUP_COUNT:-0}"
-CHILD_PID=""
+PRIMARY_PID=""
+SECONDARY_PID=""
 REPO_PID=""
 INFO_REPO_DIR="/tmp/opendds-shared"
 INFO_REPO_IOR="$INFO_REPO_DIR/repo.ior"
 INFO_REPO_LOG="$INFO_REPO_DIR/repo.log"
 
-stop_child() {
-  local child_status=0
-  if [[ -n "$CHILD_PID" ]] && kill -0 "$CHILD_PID" 2>/dev/null; then
-    kill -TERM "$CHILD_PID" 2>/dev/null || true
-    wait "$CHILD_PID" || child_status=$?
-  elif [[ -n "$CHILD_PID" ]]; then
-    wait "$CHILD_PID" || child_status=$?
+stop_process() {
+  local variable_name="$1"
+  local process_status=0
+  local process_pid="${!variable_name}"
+  if [[ -n "$process_pid" ]] && kill -0 "$process_pid" 2>/dev/null; then
+    kill -TERM "$process_pid" 2>/dev/null || true
+    wait "$process_pid" || process_status=$?
+  elif [[ -n "$process_pid" ]]; then
+    wait "$process_pid" || process_status=$?
   fi
-  CHILD_PID=""
-  return "$child_status"
+  printf -v "$variable_name" '%s' ""
+  return "$process_status"
+}
+
+wait_process() {
+  local variable_name="$1"
+  local process_status=0
+  local process_pid="${!variable_name}"
+  if [[ -n "$process_pid" ]]; then
+    wait "$process_pid" || process_status=$?
+  fi
+  printf -v "$variable_name" '%s' ""
+  return "$process_status"
 }
 
 stop_repo() {
@@ -39,7 +54,8 @@ stop_repo() {
 on_signal() {
   local exit_status="$1"
   trap - INT TERM
-  stop_child || true
+  stop_process PRIMARY_PID || true
+  stop_process SECONDARY_PID || true
   stop_repo || true
   exit "$exit_status"
 }
@@ -64,12 +80,15 @@ start_repo() {
     if ! kill -0 "$REPO_PID" 2>/dev/null; then
       cat "$INFO_REPO_LOG" >&2
       printf 'ERROR: DCPSInfoRepo exited before publishing its IOR\n' >&2
+      wait "$REPO_PID" || true
+      REPO_PID=""
       return 1
     fi
     sleep 0.1
   done
   cat "$INFO_REPO_LOG" >&2
   printf 'ERROR: timed out waiting for DCPSInfoRepo IOR\n' >&2
+  stop_repo || true
   return 1
 }
 
@@ -80,13 +99,15 @@ case "$SCENARIO" in
     run_role ping-responder shared-memory shmem \
       io.github.tmejs.opendds.ping.PingResponder \
       --domain "$DOMAIN" --count 0 &
-    CHILD_PID=$!
+    SECONDARY_PID=$!
     run_role ping-requester shared-memory shmem \
       io.github.tmejs.opendds.ping.PingRequester \
       --domain "$DOMAIN" --count "$COUNT" --warmup-count "$WARMUP_COUNT" \
-      --timeout-seconds "$TIMEOUT_SECONDS"
+      --timeout-seconds "$APPLICATION_TIMEOUT_SECONDS" &
+    PRIMARY_PID=$!
+    wait_process PRIMARY_PID
     requester_status=$?
-    stop_child
+    stop_process SECONDARY_PID
     responder_status=$?
     if (( requester_status == 0 && responder_status != 0 && responder_status != 143 )); then
       stop_repo || true
@@ -100,19 +121,20 @@ case "$SCENARIO" in
       scripts/run-dds-java.sh telemetry-monitor shared-memory shmem \
       io.github.tmejs.opendds.telemetry.TelemetryMonitor \
       --domain "$DOMAIN" --count "$COUNT" &
-    CHILD_PID=$!
+    SECONDARY_PID=$!
     run_role telemetry-device shared-memory shmem \
       io.github.tmejs.opendds.telemetry.TelemetryDevice \
-      --domain "$DOMAIN" --device-id device-1 --interval-ms 25 --count "$COUNT"
+      --domain "$DOMAIN" --device-id device-1 --interval-ms 25 --count "$COUNT" &
+    PRIMARY_PID=$!
+    wait_process PRIMARY_PID
     device_status=$?
     if (( device_status != 0 )); then
-      stop_child || true
+      stop_process SECONDARY_PID || true
       stop_repo || true
       exit "$device_status"
     fi
-    wait "$CHILD_PID"
+    wait_process SECONDARY_PID
     monitor_status=$?
-    CHILD_PID=""
     stop_repo || true
     exit "$monitor_status"
     ;;

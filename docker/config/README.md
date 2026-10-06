@@ -27,11 +27,12 @@ and shared memory cannot be combined.
 
 [`network-rtps.ini`](network-rtps.ini) uses `DEFAULT_RTPS` discovery and an
 `rtps_udp` application-data transport. Compose runs each Java role as a
-separate service on the `dds-lab` bridge. OpenDDS probes a usable UDP port and
-advertises the container's bridge-network interface. RTPS discovery multicast
-worked on the verified Docker bridge, so this configuration needs no static
-peer list. Application data is unicast because `use_multicast=0` applies to the
-`rtps_udp_data` transport instance.
+separate service on the `dds-lab` bridge and passes its stable Compose DNS name
+as `-DCPSDefaultAddress`. OpenDDS resolves that explicit, peer-reachable name to
+the service's bridge address and probes the RTPS-defined UDP port. RTPS
+discovery multicast worked on the verified Docker bridge, so this configuration
+needs no static peer list. Application data is unicast because
+`use_multicast=0` applies to the `rtps_udp_data` transport instance.
 
 Both modes use DDS domain IDs as an isolation boundary. Endpoints with different
 domain IDs do not match; the smoke test demonstrates this by expecting the
@@ -46,6 +47,10 @@ Run the ping scenario from the repository root:
 ```
 
 The launchers print `RUN_MODE`, `DATA_TRANSPORT`, and the selected domains so a
-captured result identifies the topology that produced it. Latency values include
-Java, JNI, OpenDDS, discovery state, scheduling, and container overhead; use them
-to compare runs on the same host rather than as a hardware-independent benchmark.
+captured result identifies the topology that produced it. `--timeout-seconds`
+is an overall scenario deadline enforced inside the observed container. The
+ping requester's association/reply timeout is five seconds shorter (or one
+second for very short runs), leaving time to print diagnostics and shut down.
+Latency values include Java, JNI, OpenDDS, discovery state, scheduling, and
+container overhead; use them to compare runs on the same host rather than as a
+hardware-independent benchmark.

@@ -39,9 +39,11 @@ if [[ "$SCENARIO" == ping ]]; then
 else
   service=telemetry-lab
 fi
-export DDS_SCENARIO="$SCENARIO" DDS_COUNT="$COUNT" DDS_TIMEOUT_SECONDS="$TIMEOUT_SECONDS" DDS_DOMAIN="$DOMAIN"
-printf 'RUN_MODE=shared-memory DATA_TRANSPORT=shmem scenario=%s domain=%s count=%s timeout_seconds=%s\n' \
-  "$SCENARIO" "$DOMAIN" "$COUNT" "$TIMEOUT_SECONDS"
+APPLICATION_TIMEOUT_SECONDS=$(( TIMEOUT_SECONDS > 5 ? TIMEOUT_SECONDS - 5 : 1 ))
+export DDS_SCENARIO="$SCENARIO" DDS_COUNT="$COUNT" DDS_TIMEOUT_SECONDS="$TIMEOUT_SECONDS"
+export DDS_APPLICATION_TIMEOUT_SECONDS="$APPLICATION_TIMEOUT_SECONDS" DDS_DOMAIN="$DOMAIN"
+printf 'RUN_MODE=shared-memory DATA_TRANSPORT=shmem scenario=%s domain=%s count=%s timeout_seconds=%s application_timeout_seconds=%s\n' \
+  "$SCENARIO" "$DOMAIN" "$COUNT" "$TIMEOUT_SECONDS" "$APPLICATION_TIMEOUT_SECONDS"
 docker compose --project-name java-opendds-shared \
   -f "$ROOT_DIR/docker/compose.shared-memory.yml" \
   up --no-build --abort-on-container-exit --exit-code-from "$service" "$service"
