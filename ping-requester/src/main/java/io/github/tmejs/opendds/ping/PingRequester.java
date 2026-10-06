@@ -3,6 +3,7 @@ package io.github.tmejs.opendds.ping;
 import DDS.Condition;
 import DDS.ConditionSeqHolder;
 import DDS.DataReader;
+import DDS.DataReaderQos;
 import DDS.DomainParticipant;
 import DDS.DomainParticipantFactory;
 import DDS.Duration_t;
@@ -29,8 +30,6 @@ import DDS.RETCODE_TIMEOUT;
 import DDS.RETCODE_NO_DATA;
 import DDS.HANDLE_NIL;
 import DDS.TOPIC_QOS_DEFAULT;
-import DDS.DATAREADER_QOS_DEFAULT;
-import DDS.DATAWRITER_QOS_DEFAULT;
 import Learning.PingReply;
 import Learning.PingReplyDataReader;
 import Learning.PingReplyDataReaderHelper;
@@ -44,6 +43,7 @@ import OpenDDS.DCPS.TheParticipantFactory;
 import OpenDDS.DCPS.TheServiceParticipant;
 import OpenDDS.DCPS.DEFAULT_STATUS_MASK;
 import io.github.tmejs.opendds.types.NativeTypeSupport;
+import io.github.tmejs.opendds.types.ReliableEndpointQos;
 import org.omg.CORBA.StringSeqHolder;
 
 import java.util.ArrayList;
@@ -115,14 +115,15 @@ public final class PingRequester {
             Subscriber subscriber = requireEntity(participant.create_subscriber(
                     SUBSCRIBER_QOS_DEFAULT.get(), null, DEFAULT_STATUS_MASK.value), "create subscriber");
             PingReplyListener listener = new PingReplyListener();
+            DataReaderQos readerQos = ReliableEndpointQos.reader(subscriber);
             DataReader rawReader = requireEntity(subscriber.create_datareader(
-                    replyTopic, DATAREADER_QOS_DEFAULT.get(), listener,
+                    replyTopic, readerQos, listener,
                     DEFAULT_STATUS_MASK.value), "create PingReply reader");
             PingReplyDataReader reader = PingReplyDataReaderHelper.narrow(rawReader);
             if (reader == null) {
                 throw new IllegalStateException("could not narrow PingReply reader to its generated type");
             }
-            DataWriterQos writerQos = DATAWRITER_QOS_DEFAULT.get();
+            DataWriterQos writerQos = ReliableEndpointQos.writer(publisher);
             DataWriter rawWriter = requireEntity(publisher.create_datawriter(
                     requestTopic, writerQos, null, DEFAULT_STATUS_MASK.value), "create PingRequest writer");
             PingRequestDataWriter writer = PingRequestDataWriterHelper.narrow(rawWriter);

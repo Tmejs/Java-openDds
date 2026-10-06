@@ -1,0 +1,115 @@
+services:
+  ping-requester:
+    image: java-opendds-builder:25-3.34.0
+    init: true
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-ping-requester.ini
+      DDS_DOMAIN: "${DDS_REQUESTER_DOMAIN:-42}"
+      DDS_COUNT: "${DDS_COUNT:-10}"
+      DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
+      DDS_APPLICATION_TIMEOUT_SECONDS: "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+      DDS_WARMUP_COUNT: "${DDS_WARMUP_COUNT:-0}"
+    entrypoint: ["timeout", "--foreground", "--signal=TERM", "--kill-after=5s", "${DDS_TIMEOUT_SECONDS:-30}s", "/workspace/scripts/run-dds-java.sh"]
+    command:
+      - ping-requester
+      - network
+      - RTPS/UDP
+      - io.github.tmejs.opendds.ping.PingRequester
+      - --domain
+      - "${DDS_REQUESTER_DOMAIN:-42}"
+      - --count
+      - "${DDS_COUNT:-10}"
+      - --warmup-count
+      - "${DDS_WARMUP_COUNT:-0}"
+      - --timeout-seconds
+      - "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+      - -DCPSDefaultAddress
+      - ping-requester
+    stop_grace_period: 10s
+    networks: [dds-lab]
+
+  ping-responder:
+    image: java-opendds-builder:25-3.34.0
+    init: true
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-ping-responder.ini
+      DDS_DOMAIN: "${DDS_RESPONDER_DOMAIN:-42}"
+    entrypoint: ["/workspace/scripts/run-dds-java.sh"]
+    command:
+      - ping-responder
+      - network
+      - RTPS/UDP
+      - io.github.tmejs.opendds.ping.PingResponder
+      - --domain
+      - "${DDS_RESPONDER_DOMAIN:-42}"
+      - --count
+      - "0"
+      - -DCPSDefaultAddress
+      - ping-responder
+    stop_grace_period: 10s
+    networks: [dds-lab]
+
+  telemetry-device:
+    image: java-opendds-builder:25-3.34.0
+    init: true
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-telemetry-device.ini
+      DDS_DOMAIN: "${DDS_DOMAIN:-42}"
+      DDS_COUNT: "${DDS_COUNT:-10}"
+    entrypoint: ["/workspace/scripts/run-dds-java-and-hold.sh"]
+    command:
+      - telemetry-device
+      - network
+      - RTPS/UDP
+      - io.github.tmejs.opendds.telemetry.TelemetryDevice
+      - --domain
+      - "${DDS_DOMAIN:-42}"
+      - --device-id
+      - device-1
+      - --interval-ms
+      - "25"
+      - --count
+      - "${DDS_COUNT:-10}"
+      - -DCPSDefaultAddress
+      - telemetry-device
+    stop_grace_period: 10s
+    networks: [dds-lab]
+
+  telemetry-monitor:
+    image: java-opendds-builder:25-3.34.0
+    init: true
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-telemetry-monitor.ini
+      DDS_DOMAIN: "${DDS_DOMAIN:-42}"
+      DDS_COUNT: "${DDS_COUNT:-10}"
+      DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
+    entrypoint: ["timeout", "--foreground", "--signal=TERM", "--kill-after=5s", "${DDS_TIMEOUT_SECONDS:-30}s", "/workspace/scripts/run-dds-java.sh"]
+    command:
+      - telemetry-monitor
+      - network
+      - RTPS/UDP
+      - io.github.tmejs.opendds.telemetry.TelemetryMonitor
+      - --domain
+      - "${DDS_DOMAIN:-42}"
+      - --count
+      - "${DDS_COUNT:-10}"
+      - -DCPSDefaultAddress
+      - telemetry-monitor
+    stop_grace_period: 10s
+    networks: [dds-lab]
+
+networks:
+  dds-lab:
+    driver: bridge

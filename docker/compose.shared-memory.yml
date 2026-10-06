@@ -1,0 +1,35 @@
+services:
+  ping-lab:
+    image: java-opendds-builder:25-3.34.0
+    init: true
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      DDS_SCENARIO: ping
+      DDS_CONFIG_FILE: /workspace/docker/config/shared-memory.ini
+      DDS_DOMAIN: "${DDS_DOMAIN:-42}"
+      DDS_COUNT: "${DDS_COUNT:-10}"
+      DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
+      DDS_APPLICATION_TIMEOUT_SECONDS: "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+      DDS_WARMUP_COUNT: "${DDS_WARMUP_COUNT:-0}"
+    entrypoint: ["timeout", "--foreground", "--signal=TERM", "--kill-after=5s", "${DDS_TIMEOUT_SECONDS:-30}s", "/workspace/scripts/run-shared-memory-container.sh"]
+    command: ["ping"]
+    stop_grace_period: 10s
+
+  telemetry-lab:
+    image: java-opendds-builder:25-3.34.0
+    init: true
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      DDS_SCENARIO: telemetry
+      DDS_CONFIG_FILE: /workspace/docker/config/shared-memory.ini
+      DDS_DOMAIN: "${DDS_DOMAIN:-42}"
+      DDS_COUNT: "${DDS_COUNT:-10}"
+      DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
+      DDS_APPLICATION_TIMEOUT_SECONDS: "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+    entrypoint: ["timeout", "--foreground", "--signal=TERM", "--kill-after=5s", "${DDS_TIMEOUT_SECONDS:-30}s", "/workspace/scripts/run-shared-memory-container.sh"]
+    command: ["telemetry"]
+    stop_grace_period: 10s
