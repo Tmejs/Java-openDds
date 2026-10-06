@@ -246,7 +246,7 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 - [x] **Step 4: Add network configuration.** Put two services on one named Docker bridge network; use RTPS discovery and RTPS/UDP data transport. Configure advertised addresses to resolve between service names. If multicast discovery fails in this network, add explicit static peers and document why.
 - [x] **Step 5: Add run scripts.** For `--scenario ping`, `run-shared-memory.sh` uses `--exit-code-from ping-lab`, and `run-network.sh` uses `--exit-code-from ping-requester`. For `--scenario telemetry`, use `telemetry-lab` and `telemetry-monitor`. Each passes `--count` and `--timeout-seconds` through environment variables and preserves Compose's exit code.
 - [x] **Step 6: Verify both paths and transport selection.** Run `./scripts/smoke-test.sh`. Expected: ping exchanges exactly 10 replies and telemetry receives 10 samples per mode; logs/configuration identify `shmem` in shared-memory mode and RTPS/UDP in network mode. Also run the network services with different domain IDs; expected: no match and requester timeout.
-- [ ] **Step 7: Check and commit the transport setup.** Run `git diff --check`, inspect both Compose networks and process cleanup, then commit `feat: add OpenDDS shared-memory and network demos`.
+- [x] **Step 7: Check and commit the transport setup.** Run `git diff --check`, inspect both Compose networks and process cleanup, then commit `feat: add OpenDDS shared-memory and network demos`.
 
 ## Checkpoint 5: Add Telemetry and Monitoring
 

@@ -23,11 +23,12 @@ applications.
   the runtime unless `DDS_SKIP_BUILD=1`, print the selected mode and transport,
   and use Compose `--exit-code-from` for the scenario's observed process.
 - Each observed service has an in-container overall deadline. The requester
-  timeout is shorter than that deadline so it can emit failure diagnostics and
-  clean up before the container deadline. The shared supervisor tracks both
-  JVM PIDs and the InfoRepo PID for ordered signal handling. The finite network
-  telemetry device holds after a successful publish run so monitor completion,
-  rather than publisher exit, determines success.
+  timeout is shorter than that deadline to provide a best-effort diagnostic and
+  cleanup margin; the outer deadline remains authoritative across all waits.
+  The shared supervisor tracks both JVM PIDs and the InfoRepo PID for ordered
+  signal handling. The finite network telemetry device holds after a successful
+  publish run so monitor completion, rather than publisher exit, determines
+  success.
 - The smoke gate validates required services, builds once, requires exactly 10
   replies in each ping topology, checks the printed transport label, and proves
   domain isolation with an expected network requester timeout.
@@ -86,4 +87,8 @@ reachable addresses; and the smoke gate only checked a printed transport
 label. The fixes add a successful-device hold wrapper, track both shared JVMs,
 enforce in-container deadlines with diagnostic grace, pass Compose DNS names
 as `DCPSDefaultAddress`, and verify each INI's `transport_type`. Follow-up
-independent review is pending.
+independent review confirmed that all five findings are resolved and that no
+Critical or Important findings remain. It identified one Minor documentation
+overstatement about the diagnostic margin because each DDS wait has its own
+timeout; the wording now describes that margin as best-effort and the outer
+deadline as authoritative.

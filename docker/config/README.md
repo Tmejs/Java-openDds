@@ -50,7 +50,10 @@ The launchers print `RUN_MODE`, `DATA_TRANSPORT`, and the selected domains so a
 captured result identifies the topology that produced it. `--timeout-seconds`
 is an overall scenario deadline enforced inside the observed container. The
 ping requester's association/reply timeout is five seconds shorter (or one
-second for very short runs), leaving time to print diagnostics and shut down.
+second for very short runs), which usually leaves time to print diagnostics
+and shut down. Each DDS association and reply wait gets that application
+timeout separately, so the outer scenario deadline remains authoritative and
+can interrupt a later wait.
 Latency values include Java, JNI, OpenDDS, discovery state, scheduling, and
 container overhead; use them to compare runs on the same host rather than as a
 hardware-independent benchmark.
