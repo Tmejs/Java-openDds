@@ -7,6 +7,10 @@ COUNT="${DDS_COUNT:-10}"
 TIMEOUT_SECONDS="${DDS_TIMEOUT_SECONDS:-30}"
 APPLICATION_TIMEOUT_SECONDS="${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
 WARMUP_COUNT="${DDS_WARMUP_COUNT:-0}"
+TELEMETRY_INTERVAL_MS="${DDS_TELEMETRY_INTERVAL_MS:-25}"
+STALE_AFTER_MS="${DDS_STALE_AFTER_MS:-100}"
+RELIABILITY="${DDS_RELIABILITY:-reliable}"
+HISTORY_DEPTH="${DDS_HISTORY_DEPTH:-10}"
 PRIMARY_PID=""
 SECONDARY_PID=""
 REPO_PID=""
@@ -120,11 +124,14 @@ case "$SCENARIO" in
     timeout --signal=TERM "${TIMEOUT_SECONDS}s" \
       scripts/run-dds-java.sh telemetry-monitor shared-memory shmem \
       io.github.tmejs.opendds.telemetry.TelemetryMonitor \
-      --domain "$DOMAIN" --count "$COUNT" &
+      --domain "$DOMAIN" --count "$COUNT" --stale-after-ms "$STALE_AFTER_MS" \
+      --reliability "$RELIABILITY" --history-depth "$HISTORY_DEPTH" &
     SECONDARY_PID=$!
     run_role telemetry-device shared-memory shmem \
       io.github.tmejs.opendds.telemetry.TelemetryDevice \
-      --domain "$DOMAIN" --device-id device-1 --interval-ms 25 --count "$COUNT" &
+      --domain "$DOMAIN" --device-id device-1 --interval-ms "$TELEMETRY_INTERVAL_MS" \
+      --count "$COUNT" --timeout-seconds "$APPLICATION_TIMEOUT_SECONDS" \
+      --reliability "$RELIABILITY" --history-depth "$HISTORY_DEPTH" &
     PRIMARY_PID=$!
     wait_process PRIMARY_PID
     device_status=$?

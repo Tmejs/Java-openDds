@@ -30,6 +30,10 @@ services:
       DDS_COUNT: "${DDS_COUNT:-10}"
       DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
       DDS_APPLICATION_TIMEOUT_SECONDS: "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+      DDS_TELEMETRY_INTERVAL_MS: "${DDS_TELEMETRY_INTERVAL_MS:-25}"
+      DDS_STALE_AFTER_MS: "${DDS_STALE_AFTER_MS:-100}"
+      DDS_RELIABILITY: "${DDS_RELIABILITY:-reliable}"
+      DDS_HISTORY_DEPTH: "${DDS_HISTORY_DEPTH:-10}"
     entrypoint: ["timeout", "--foreground", "--signal=TERM", "--kill-after=5s", "${DDS_TIMEOUT_SECONDS:-30}s", "/workspace/scripts/run-shared-memory-container.sh"]
     command: ["telemetry"]
     stop_grace_period: 10s

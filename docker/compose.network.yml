@@ -65,6 +65,10 @@ services:
       DDS_CONFIG_FILE: /workspace/docker/config/network-rtps-telemetry-device.ini
       DDS_DOMAIN: "${DDS_DOMAIN:-42}"
       DDS_COUNT: "${DDS_COUNT:-10}"
+      DDS_APPLICATION_TIMEOUT_SECONDS: "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+      DDS_TELEMETRY_INTERVAL_MS: "${DDS_TELEMETRY_INTERVAL_MS:-25}"
+      DDS_RELIABILITY: "${DDS_RELIABILITY:-reliable}"
+      DDS_HISTORY_DEPTH: "${DDS_HISTORY_DEPTH:-10}"
     entrypoint: ["/workspace/scripts/run-dds-java-and-hold.sh"]
     command:
       - telemetry-device
@@ -76,9 +80,15 @@ services:
       - --device-id
       - device-1
       - --interval-ms
-      - "25"
+      - "${DDS_TELEMETRY_INTERVAL_MS:-25}"
       - --count
       - "${DDS_COUNT:-10}"
+      - --timeout-seconds
+      - "${DDS_APPLICATION_TIMEOUT_SECONDS:-25}"
+      - --reliability
+      - "${DDS_RELIABILITY:-reliable}"
+      - --history-depth
+      - "${DDS_HISTORY_DEPTH:-10}"
       - -DCPSDefaultAddress
       - telemetry-device
     stop_grace_period: 10s
@@ -95,6 +105,9 @@ services:
       DDS_DOMAIN: "${DDS_DOMAIN:-42}"
       DDS_COUNT: "${DDS_COUNT:-10}"
       DDS_TIMEOUT_SECONDS: "${DDS_TIMEOUT_SECONDS:-30}"
+      DDS_STALE_AFTER_MS: "${DDS_STALE_AFTER_MS:-100}"
+      DDS_RELIABILITY: "${DDS_RELIABILITY:-reliable}"
+      DDS_HISTORY_DEPTH: "${DDS_HISTORY_DEPTH:-10}"
     entrypoint: ["timeout", "--foreground", "--signal=TERM", "--kill-after=5s", "${DDS_TIMEOUT_SECONDS:-30}s", "/workspace/scripts/run-dds-java.sh"]
     command:
       - telemetry-monitor
@@ -105,6 +118,12 @@ services:
       - "${DDS_DOMAIN:-42}"
       - --count
       - "${DDS_COUNT:-10}"
+      - --stale-after-ms
+      - "${DDS_STALE_AFTER_MS:-100}"
+      - --reliability
+      - "${DDS_RELIABILITY:-reliable}"
+      - --history-depth
+      - "${DDS_HISTORY_DEPTH:-10}"
       - -DCPSDefaultAddress
       - telemetry-monitor
     stop_grace_period: 10s

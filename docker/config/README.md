@@ -82,3 +82,57 @@ container overhead. Reliable RTPS setup can make the first measured exchange
 an outlier; use `--warmup-count` when comparing steady-state results. Compare
 runs on the same host rather than treating them as a hardware-independent
 benchmark.
+
+## Telemetry QoS and freshness experiment
+
+The telemetry topic is keyed by `device_id`. A writer registers that key and
+publishes an increasing sequence number together with a wall-clock timestamp,
+temperature, and humidity. The monitor keeps independent state for every key.
+A forward jump from sequence 1 to 4 adds two missing samples; duplicate and
+older samples do not replace the displayed value.
+
+Freshness deliberately uses `System.nanoTime()` at the reader. Comparing the
+device's wall clock with the monitor's wall clock would mix transport delay
+with clock skew. The device timestamp remains part of the sample for domain
+meaning, while `age_ms` answers the local operational question: how long has
+this monitor gone without a newer sample?
+
+Both endpoints accept two explicit QoS controls:
+
+- `--reliability reliable|best-effort` selects the DDS Reliability policy.
+  Reliable is the default baseline and waits for acknowledgements before the
+  finite publisher exits. Best effort permits loss and is useful for observing
+  sequence-gap behavior under load or disruption.
+- `--history-depth N` selects `KEEP_LAST` with depth `N`. This bounds the
+  per-instance history retained by an endpoint. It does not make volatile data
+  durable and cannot recover a best-effort sample that was already lost.
+
+Run the reliable baseline in either topology:
+
+```bash
+./scripts/run-shared-memory.sh --scenario telemetry --count 10 \
+  --reliability reliable --history-depth 10 \
+  --interval-ms 25 --stale-after-ms 100
+
+./scripts/run-network.sh --scenario telemetry --count 10 \
+  --reliability reliable --history-depth 10 \
+  --interval-ms 25 --stale-after-ms 100
+```
+
+Change both endpoints together through the launcher for a best-effort trial:
+
+```bash
+./scripts/run-network.sh --scenario telemetry --count 10 \
+  --reliability best-effort --history-depth 10
+```
+
+A finite best-effort run uses the same value for the device's publish count and
+the monitor's receive target. If loss occurs, the missing sequence is printed,
+but the monitor cannot reach that target and the outer scenario timeout ends the
+run. This makes loss visible as a non-zero experiment result. Use an unbounded
+monitor or a separate receive target when exploring sustained lossy streams
+outside these finite launchers.
+For a finite `--count`, the monitor waits until it receives that many samples,
+then keeps running until the last value becomes stale. Its final summary reports
+the received count, number of device keys, accumulated sequence gaps, and stale
+state. The Compose scenario uses one device key (`device-1`).

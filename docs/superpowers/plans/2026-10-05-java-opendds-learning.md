@@ -268,8 +268,8 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 - For each accepted forward sequence jump, add `newSequence - previousSequence - 1` to `missingSamples`; ignore duplicate or older sequence values.
 - Freshness is calculated from local monotonic receive time, not a remote device wall clock.
 
-- [ ] **Step 1: Write tests for first sample, forward gap, duplicate, out-of-order sample, and stale age.** Use an injected `receivedAtNanos` and `nowNanos` so the tests need no sleeps.
-- [ ] Assert the contract with this sequence:
+- [x] **Step 1: Write tests for first sample, forward gap, duplicate, out-of-order sample, and stale age.** Use an injected `receivedAtNanos` and `nowNanos` so the tests need no sleeps.
+- [x] Assert the contract with this sequence:
 
 ```java
 private static Learning.TelemetrySample sample(String id, long sequence) {
@@ -291,10 +291,10 @@ void countsGapsAndIgnoresOldSamples() {
     assertTrue(tracker.view("sensor-a", 12_000, 5_000).orElseThrow().stale());
 }
 ```
-- [ ] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`. Expected: fail before the tracker API exists.
-- [ ] **Step 3: Implement the view record and tracker.** Store per-device latest sample, last receive monotonic time, accumulated gap count; synchronize updates/reads because DDS listeners run on middleware threads.
-- [ ] **Step 4: Test exact state behavior.** For sequence 1 then 4, assert two missing samples. For duplicate 4 and older 3, assert displayed sequence and gap count remain unchanged. For `nowNanos - receivedAtNanos >= staleAfterNanos`, assert `stale` is true.
-- [ ] **Step 5: Run and commit.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`; expected PASS. Run `git diff --check`; commit `feat: track telemetry freshness and sequence gaps`.
+- [x] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`. Expected: fail before the tracker API exists.
+- [x] **Step 3: Implement the view record and tracker.** Store per-device latest sample, last receive monotonic time, accumulated gap count; synchronize updates/reads because DDS listeners run on middleware threads.
+- [x] **Step 4: Test exact state behavior.** For sequence 1 then 4, assert two missing samples. For duplicate 4 and older 3, assert displayed sequence and gap count remain unchanged. For `nowNanos - receivedAtNanos >= staleAfterNanos`, assert `stale` is true.
+- [x] **Step 5: Run and commit.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`; expected PASS. Run `git diff --check`; commit `feat: track telemetry freshness and sequence gaps`.
 
 ### Task 8: Add the telemetry publisher and monitor
 
@@ -310,8 +310,8 @@ void countsGapsAndIgnoresOldSamples() {
 - Device accepts `--domain`, `--device-id`, `--interval-ms`, and `--count`; each sample increments a per-device sequence and uses generated `TelemetrySample` fields.
 - Monitor accepts `--domain`, `--stale-after-ms`, and optional `--count`; it prints the latest values, age, accumulated sequence gaps, and stale status.
 
-- [ ] **Step 1: Write schedule test.** Given `new TelemetrySchedule(3, 0)`, assert `nextSequence()` returns `OptionalLong.of(1)`, then 2, then 3, then empty; for count 0, assert the first result is empty.
-- [ ] The test uses:
+- [x] **Step 1: Write schedule test.** Given `new TelemetrySchedule(3, 0)`, assert `nextSequence()` returns `OptionalLong.of(1)`, then 2, then 3, then empty; for count 0, assert the first result is empty.
+- [x] The test uses:
 
 ```java
 TelemetrySchedule schedule = new TelemetrySchedule(3, 0);
@@ -320,12 +320,12 @@ assertEquals(OptionalLong.of(2), schedule.nextSequence());
 assertEquals(OptionalLong.of(3), schedule.nextSequence());
 assertEquals(OptionalLong.empty(), schedule.nextSequence());
 ```
-- [ ] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl telemetry-device -Dtest=TelemetryScheduleTest test`. Expected: fail before the schedule model exists.
-- [ ] **Step 3: Implement the deterministic sample schedule.** Keep interval waiting and wall-clock timestamp creation outside `TelemetrySchedule`; the schedule stores only the remaining count and last sequence.
-- [ ] **Step 4: Implement DDS writer and reader lifecycles.** Device publishes keyed `TelemetrySample` instances using a reliable baseline. Monitor reads samples, passes each sample with `System.nanoTime()` to `TelemetryTracker`, and periodically prints the resulting view. Both applications validate arguments and clean up DDS entities on normal shutdown.
-- [ ] **Step 5: Add the first QoS comparison.** Expose a named reliability option (`reliable` or `best-effort`) and history depth through explicit CLI/config values. Keep reliable as default; print the effective QoS settings at startup.
-- [ ] **Step 6: Run both telemetry modes.** Launch device and monitor under each Compose configuration; expected: at least 10 samples per device are observed, sequence gaps remain zero in the reliable baseline, and the monitor becomes stale after the device stops.
-- [ ] **Step 7: Run checks and commit.** Run `mvn -pl telemetry-device,telemetry-monitor -am verify`, then both telemetry smoke runs and `git diff --check`; commit `feat: add DDS telemetry publisher and monitor`.
+- [x] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl telemetry-device -Dtest=TelemetryScheduleTest test`. Expected: fail before the schedule model exists.
+- [x] **Step 3: Implement the deterministic sample schedule.** Keep interval waiting and wall-clock timestamp creation outside `TelemetrySchedule`; the schedule stores only the remaining count and last sequence.
+- [x] **Step 4: Implement DDS writer and reader lifecycles.** Device publishes keyed `TelemetrySample` instances using a reliable baseline. Monitor reads samples, passes each sample with `System.nanoTime()` to `TelemetryTracker`, and periodically prints the resulting view. Both applications validate arguments and clean up DDS entities on normal shutdown.
+- [x] **Step 5: Add the first QoS comparison.** Expose a named reliability option (`reliable` or `best-effort`) and history depth through explicit CLI/config values. Keep reliable as default; print the effective QoS settings at startup.
+- [x] **Step 6: Run both telemetry modes.** Launch device and monitor under each Compose configuration; expected: at least 10 samples per device are observed, sequence gaps remain zero in the reliable baseline, and the monitor becomes stale after the device stops.
+- [x] **Step 7: Run checks and commit.** Run `mvn -pl telemetry-device,telemetry-monitor -am verify`, then both telemetry smoke runs and `git diff --check`; commit `feat: add DDS telemetry publisher and monitor`.
 
 ## Checkpoint 6: Finish the Learning Documentation
 
