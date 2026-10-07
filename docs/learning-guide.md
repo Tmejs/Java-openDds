@@ -73,7 +73,7 @@ flowchart LR
     subgraph DP["Telemetry device participant"]
       TELW["TelemetrySample DataWriter<br/>key = device_id"]
     end
-    TELEMETRY["Telemetry topic"]
+    TELEMETRY["TelemetrySample topic"]
     subgraph MP["Telemetry monitor participant"]
       TELR["TelemetrySample DataReader"]
     end
@@ -159,8 +159,11 @@ version.
 ## 5. Read the ping/pong path
 
 The requester owns a `PingRequest` writer and `PingReply` reader. The
-responder owns the inverse endpoints. Before measuring, each side waits for DDS
-association instead of guessing with a fixed sleep.
+responder owns the inverse endpoints. Before measuring, the requester waits for
+both of its endpoints to associate with the responder. The responder creates
+its endpoints and then waits for reader-listener activity. This avoids guessing
+with a fixed startup sleep while putting the explicit association checks in the
+requester.
 
 For each measured exchange the requester:
 
@@ -239,8 +242,10 @@ Reliable delivery requests acknowledgement and repair behavior. Best effort
 allows loss. `KEEP_LAST` bounds retained samples per instance; it does not
 make volatile samples durable and cannot recreate a lost best-effort datagram.
 
-The launcher applies the selected QoS to both ends. That keeps offered and
-requested policies compatible and makes an experiment reproducible.
+The launcher applies the selected QoS to both ends. Matching Reliability keeps
+the reader's requested policy compatible with the writer's offered policy.
+History does not determine endpoint association; using the same depth on both
+ends makes their bounded cache behavior symmetric and easier to compare.
 
 Change one policy at a time:
 
@@ -295,9 +300,16 @@ Network reachability alone does not cross a DDS domain boundary.
 After `mvn clean verify`, inspect `dds-types/target/generated-sources/` and
 the architecture-specific native directory under `dds-types/target/`. Trace
 `TelemetrySampleDataWriterHelper.narrow` from an application to its generated
-class. Change an IDL field name and run the reactor again. Confirm the stale
-generated class is removed by the regeneration test, then revert the
-experimental schema change.
+class. Then run the dedicated incremental-generation regression:
+
+```bash
+./dds-types/scripts/test-idl-regeneration.sh
+```
+
+The script builds an archived checkout, renames the `PingReply` topic type,
+rebuilds without `clean`, and confirms the renamed class exists while the
+removed `PingReply.class` does not. A type rename or removal exercises
+stale-class cleanup; a field rename only regenerates the same type class.
 
 ### Exercise D: observe keyed state
 

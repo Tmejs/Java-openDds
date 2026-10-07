@@ -112,9 +112,9 @@ find dds-types/target -name 'liblearning_types.so' -print
 sed -n '1,220p' scripts/run-dds-java.sh
 ```
 
-The wrapper must include the generated native directory in
-`java.library.path` and the OpenDDS native directories in
-`LD_LIBRARY_PATH`.
+The wrapper assembles `java.library.path` from the generated native directory
+and the OpenDDS, ACE, and TAO library directories. The builder image supplies
+`LD_LIBRARY_PATH`, which the Java process inherits.
 
 **Correction**
 

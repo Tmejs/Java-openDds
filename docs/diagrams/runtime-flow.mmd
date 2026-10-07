@@ -13,7 +13,7 @@ flowchart LR
     subgraph DP["Telemetry device participant"]
       TELW["TelemetrySample DataWriter<br/>key = device_id"]
     end
-    TELEMETRY["Telemetry topic<br/>Learning::TelemetrySample"]
+    TELEMETRY["TelemetrySample topic<br/>Learning::TelemetrySample"]
     subgraph MP["Telemetry monitor participant"]
       TELR["TelemetrySample DataReader<br/>per-device state"]
     end
