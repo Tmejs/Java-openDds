@@ -126,6 +126,12 @@ Change both endpoints together through the launcher for a best-effort trial:
   --reliability best-effort --history-depth 10
 ```
 
+A finite best-effort run uses the same value for the device's publish count and
+the monitor's receive target. If loss occurs, the missing sequence is printed,
+but the monitor cannot reach that target and the outer scenario timeout ends the
+run. This makes loss visible as a non-zero experiment result. Use an unbounded
+monitor or a separate receive target when exploring sustained lossy streams
+outside these finite launchers.
 For a finite `--count`, the monitor waits until it receives that many samples,
 then keeps running until the last value becomes stale. Its final summary reports
 the received count, number of device keys, accumulated sequence gaps, and stale

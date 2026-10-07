@@ -123,6 +123,11 @@ public final class TelemetryMonitor {
             if (!listener.stopRequested && options.count > 0) {
                 waitUntilStale(listener, tracker, options.staleAfterNanos());
             }
+            callbackFailure = listener.failure.get();
+            if (callbackFailure != null) {
+                throw callbackFailure;
+            }
+            boolean stopped = listener.stopRequested;
 
             long now = System.nanoTime();
             long totalMissing = 0;
@@ -137,12 +142,13 @@ public final class TelemetryMonitor {
                 }
             }
             System.out.printf(Locale.ROOT,
-                    "TELEMETRY_MONITOR_SUMMARY status=OK received=%d expected=%s "
+                    "TELEMETRY_MONITOR_SUMMARY status=%s received=%d expected=%s "
                             + "devices=%d missing=%d stale=%s%n",
+                    stopped ? "STOPPED" : "OK",
                     listener.received.get(),
                     options.count == 0 ? "unbounded" : Integer.toString(options.count),
                     listener.deviceIds.size(), totalMissing, allStale);
-            return 0;
+            return stopped ? 1 : 0;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             System.err.println("ERROR: telemetry monitor was interrupted");
@@ -169,7 +175,7 @@ public final class TelemetryMonitor {
     private static void waitUntilStale(
             TelemetryListener listener, TelemetryTracker tracker, long staleAfterNanos)
             throws InterruptedException {
-        while (true) {
+        while (!listener.stopRequested) {
             RuntimeException callbackFailure = listener.failure.get();
             if (callbackFailure != null) {
                 throw callbackFailure;
@@ -294,7 +300,11 @@ public final class TelemetryMonitor {
         }
 
         @Override public void on_requested_deadline_missed(DataReader reader, DDS.RequestedDeadlineMissedStatus status) { }
-        @Override public void on_requested_incompatible_qos(DataReader reader, DDS.RequestedIncompatibleQosStatus status) { }
+        @Override
+        public void on_requested_incompatible_qos(
+                DataReader reader, DDS.RequestedIncompatibleQosStatus status) {
+            fail("TelemetrySample reader requested incompatible QoS");
+        }
         @Override public void on_sample_rejected(DataReader reader, DDS.SampleRejectedStatus status) { }
         @Override public void on_liveliness_changed(DataReader reader, DDS.LivelinessChangedStatus status) { }
         @Override public void on_subscription_matched(DataReader reader, DDS.SubscriptionMatchedStatus status) { }
