@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph D["DDS domain 42"]
+    subgraph RP["Requester participant"]
+      REQW["PingRequest DataWriter"]
+      REPR["PingReply DataReader"]
+    end
+    PING["PingRequest topic<br/>Learning::PingRequest"]
+    PONG["PingReply topic<br/>Learning::PingReply"]
+    subgraph PP["Responder participant"]
+      REQR["PingRequest DataReader"]
+      REPW["PingReply DataWriter"]
+    end
+    subgraph DP["Telemetry device participant"]
+      TELW["TelemetrySample DataWriter<br/>key = device_id"]
+    end
+    TELEMETRY["TelemetrySample topic<br/>Learning::TelemetrySample"]
+    subgraph MP["Telemetry monitor participant"]
+      TELR["TelemetrySample DataReader<br/>per-device state"]
+    end
+    REQW -->|"write request"| PING
+    PING -->|"take request"| REQR
+    REQR -->|"correlate sequence"| REPW
+    REPW -->|"write reply"| PONG
+    PONG -->|"take reply"| REPR
+    TELW -->|"write sample"| TELEMETRY
+    TELEMETRY -->|"take sample"| TELR
+  end
+  DISCOVERY["Discovery plane<br/>InfoRepo or RTPS"]
+  TRANSPORT["Application-data plane<br/>shmem or RTPS/UDP"]
+  DISCOVERY -. "matches compatible readers and writers" .-> D
+  TRANSPORT -. "carries samples after matching" .-> D
