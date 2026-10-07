@@ -1,0 +1,42 @@
+flowchart LR
+  IDL["Learning.idl<br/>application-owned schema"]
+  subgraph GEN["OpenDDS generation inside the pinned builder"]
+    TAO["tao_idl"]
+    ODDS["opendds_idl"]
+    JNI["idl2jni"]
+    MPC["MPC / mwc.pl"]
+    MAKE["GNU Make"]
+  end
+  JGEN["Generated Java<br/>types, helpers, readers,<br/>writers, TypeSupport"]
+  CPPGEN["Generated C++ and JNI<br/>marshalling and native methods"]
+  APPJAR["dds-types JAR"]
+  NATIVE["liblearning_types.so<br/>Linux architecture-specific"]
+  ODJARS["OpenDDS runtime JARs<br/>OpenDDS_DCPS, tao_java,<br/>i2jrt, i2jrt_corba"]
+  ODNATIVE["OpenDDS / ACE / TAO<br/>native libraries"]
+  subgraph MAVEN["Maven reactor"]
+    TYPES["dds-types"]
+    APPS["requester, responder,<br/>device, monitor"]
+  end
+  JVM["Java 25 JVM"]
+  LOAD["NativeTypeSupport<br/>System.loadLibrary"]
+  DDS["OpenDDS middleware"]
+  IDL --> TAO
+  IDL --> ODDS
+  IDL --> JNI
+  MPC --> MAKE
+  TAO --> CPPGEN
+  ODDS --> JGEN
+  ODDS --> CPPGEN
+  JNI --> JGEN
+  JNI --> CPPGEN
+  CPPGEN --> MAKE
+  JGEN --> TYPES
+  MAKE --> NATIVE
+  TYPES --> APPJAR
+  APPJAR --> APPS
+  ODJARS --> APPS
+  APPS --> JVM
+  JVM --> LOAD
+  LOAD --> NATIVE
+  NATIVE --> DDS
+  ODNATIVE --> DDS
