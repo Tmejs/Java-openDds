@@ -268,8 +268,8 @@ assertFalse(PingReplyMatcher.matches(2L, reply));
 - For each accepted forward sequence jump, add `newSequence - previousSequence - 1` to `missingSamples`; ignore duplicate or older sequence values.
 - Freshness is calculated from local monotonic receive time, not a remote device wall clock.
 
-- [ ] **Step 1: Write tests for first sample, forward gap, duplicate, out-of-order sample, and stale age.** Use an injected `receivedAtNanos` and `nowNanos` so the tests need no sleeps.
-- [ ] Assert the contract with this sequence:
+- [x] **Step 1: Write tests for first sample, forward gap, duplicate, out-of-order sample, and stale age.** Use an injected `receivedAtNanos` and `nowNanos` so the tests need no sleeps.
+- [x] Assert the contract with this sequence:
 
 ```java
 private static Learning.TelemetrySample sample(String id, long sequence) {
@@ -291,10 +291,10 @@ void countsGapsAndIgnoresOldSamples() {
     assertTrue(tracker.view("sensor-a", 12_000, 5_000).orElseThrow().stale());
 }
 ```
-- [ ] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`. Expected: fail before the tracker API exists.
-- [ ] **Step 3: Implement the view record and tracker.** Store per-device latest sample, last receive monotonic time, accumulated gap count; synchronize updates/reads because DDS listeners run on middleware threads.
-- [ ] **Step 4: Test exact state behavior.** For sequence 1 then 4, assert two missing samples. For duplicate 4 and older 3, assert displayed sequence and gap count remain unchanged. For `nowNanos - receivedAtNanos >= staleAfterNanos`, assert `stale` is true.
-- [ ] **Step 5: Run and commit.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`; expected PASS. Run `git diff --check`; commit `feat: track telemetry freshness and sequence gaps`.
+- [x] **Step 2: Run the focused test and confirm failure.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`. Expected: fail before the tracker API exists.
+- [x] **Step 3: Implement the view record and tracker.** Store per-device latest sample, last receive monotonic time, accumulated gap count; synchronize updates/reads because DDS listeners run on middleware threads.
+- [x] **Step 4: Test exact state behavior.** For sequence 1 then 4, assert two missing samples. For duplicate 4 and older 3, assert displayed sequence and gap count remain unchanged. For `nowNanos - receivedAtNanos >= staleAfterNanos`, assert `stale` is true.
+- [x] **Step 5: Run and commit.** Run `mvn -pl telemetry-monitor -Dtest=TelemetryTrackerTest test`; expected PASS. Run `git diff --check`; commit `feat: track telemetry freshness and sequence gaps`.
 
 ### Task 8: Add the telemetry publisher and monitor
 
