@@ -25,12 +25,14 @@ mv "${idl_file}.tmp" "${idl_file}"
 docker run --rm --volume "${temp_dir}:/workspace" --workdir /workspace \
   "${builder_image}" mvn --batch-mode --no-transfer-progress -pl dds-types -am package
 
-artifact="${temp_dir}/dds-types/target/dds-types-0.1.0-SNAPSHOT.jar"
-if ! jar tf "${artifact}" | grep -qx 'Learning/RenamedReply.class'; then
+artifact="dds-types/target/dds-types-0.1.0-SNAPSHOT.jar"
+artifact_entries="$(docker run --rm --volume "${temp_dir}:/workspace:ro" --workdir /workspace \
+  "${builder_image}" jar tf "${artifact}")"
+if ! grep -qx 'Learning/RenamedReply.class' <<< "${artifact_entries}"; then
   echo "error: renamed IDL type is missing from the packaged JAR" >&2
   exit 1
 fi
-if jar tf "${artifact}" | grep -qx 'Learning/PingReply.class'; then
+if grep -qx 'Learning/PingReply.class' <<< "${artifact_entries}"; then
   echo "error: removed IDL type PingReply remains in the packaged JAR" >&2
   exit 1
 fi
