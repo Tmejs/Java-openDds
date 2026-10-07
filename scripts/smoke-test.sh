@@ -158,6 +158,39 @@ require_ping_output() {
   fi
 }
 
+require_telemetry_output() {
+  local label="$1"
+  local expected_transport="$2"
+  shift 2
+  local output
+  if ! output="$("$@" 2>&1)"; then
+    printf '%s\n' "$output" >&2
+    printf 'ERROR: %s failed\n' "$label" >&2
+    return 1
+  fi
+  printf '%s\n' "$output"
+  if ! grep -Fq "$expected_transport" <<<"$output"; then
+    printf 'ERROR: %s did not report selected transport: %s\n' "$label" "$expected_transport" >&2
+    return 1
+  fi
+  if ! grep -Fq 'reliability=reliable history_depth=10' <<<"$output"; then
+    printf 'ERROR: %s did not report the reliable KEEP_LAST QoS baseline\n' "$label" >&2
+    return 1
+  fi
+  if ! grep -Fq 'TELEMETRY_DEVICE_SUMMARY status=OK sent=10 expected=10' <<<"$output"; then
+    printf 'ERROR: %s did not publish exactly ten telemetry samples\n' "$label" >&2
+    return 1
+  fi
+  if ! grep -Fq 'TELEMETRY_MONITOR_SUMMARY status=OK received=10 expected=10 devices=1 missing=0 stale=true' <<<"$output"; then
+    printf 'ERROR: %s did not receive ten gap-free samples and observe staleness\n' "$label" >&2
+    return 1
+  fi
+  if ! grep -Fq 'TELEMETRY_STALE device_id=device-1 sequence=10' <<<"$output"; then
+    printf 'ERROR: %s did not report device-1 becoming stale\n' "$label" >&2
+    return 1
+  fi
+}
+
 require_domain_mismatch() {
   local output
   if output="$(./scripts/run-network.sh --scenario ping --count 1 --timeout-seconds 3 \
@@ -213,4 +246,13 @@ require_ping_output "network non-default-domain ping" \
   ./scripts/run-network.sh --scenario ping --count 10 --timeout-seconds 30 --domain 7
 require_domain_mismatch
 
-printf '%s\n' 'SMOKE_TEST status=OK scenarios=ping transports=shmem,rtps_udp domains=42,7,mismatch'
+require_telemetry_output "shared-memory telemetry" \
+  "RUN_MODE=shared-memory DATA_TRANSPORT=shmem" \
+  ./scripts/run-shared-memory.sh --scenario telemetry --count 10 --timeout-seconds 30 \
+    --reliability reliable --history-depth 10 --stale-after-ms 100 --interval-ms 25
+require_telemetry_output "network telemetry" \
+  "RUN_MODE=network DATA_TRANSPORT=RTPS/UDP" \
+  ./scripts/run-network.sh --scenario telemetry --count 10 --timeout-seconds 30 \
+    --reliability reliable --history-depth 10 --stale-after-ms 100 --interval-ms 25
+
+printf '%s\n' 'SMOKE_TEST status=OK scenarios=ping,telemetry transports=shmem,rtps_udp domains=42,7,mismatch'
