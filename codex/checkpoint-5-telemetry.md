@@ -52,6 +52,12 @@ and end-to-end execution over the existing shared-memory and RTPS/UDP modes.
   guarantee; the mode deliberately permits loss.
 - `bash -n scripts/*.sh`, both Compose `config --quiet` checks, and
   `git diff --check` passed.
+- A forced shared-memory run used a one-sample target, a 10-second stale
+  threshold, and a four-second scenario deadline. SIGTERM interrupted the stale
+  wait, the monitor printed `status=STOPPED received=1 expected=1`, and Compose
+  returned the expected timeout status after graceful DDS cleanup.
+- A normal reliable RTPS/UDP run after the shutdown fix again received all 10
+  samples, reported zero gaps, observed staleness, and exited successfully.
 
 ## Learning notes and limits
 
@@ -68,4 +74,13 @@ and end-to-end execution over the existing shared-memory and RTPS/UDP modes.
 
 ## Independent review
 
-Pending before push.
+The initial independent review found no Critical issues and one Important issue:
+a signal received during the post-count staleness wait could leave the main
+thread looping while the shutdown hook waited for cleanup. The monitor now
+checks the stop request in that loop, reports `status=STOPPED`, and returns a
+non-zero result for an interrupted finite run. The review's Minor observations
+were also addressed by documenting finite best-effort loss behavior and
+reporting requested-incompatible-QoS callbacks. Follow-up review reran the
+forced shutdown and normal RTPS/UDP paths and confirmed no Critical or Important
+findings remain. The complete Maven and Docker smoke gates were then rerun on
+the reviewed result and passed.
