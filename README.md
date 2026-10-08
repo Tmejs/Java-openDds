@@ -176,7 +176,9 @@ SMOKE_TEST status=OK scenarios=ping,telemetry transports=shmem,rtps_udp domains=
 
 ## Learn how it works
 
-Start with the [learning guide](docs/learning-guide.md). The diagram sources are:
+Start with the [learning guide](docs/learning-guide.md), then follow the
+[architecture and integration deep dive](docs/architecture-deep-dive.md) to
+rebuild the system layer by layer. The diagram sources are:
 
 - [runtime data flow](docs/diagrams/runtime-flow.mmd)
 - [IDL, build, and JNI flow](docs/diagrams/build-and-jni.mmd)
