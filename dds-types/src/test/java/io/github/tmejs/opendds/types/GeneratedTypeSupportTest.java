@@ -26,8 +26,9 @@ class GeneratedTypeSupportTest {
             default -> throw new IllegalStateException(
                     "Unsupported native library architecture: " + System.getProperty("os.arch"));
         };
+        String operatingSystem = System.getProperty("os.name").startsWith("Mac") ? "macos" : "linux";
         Path nativeLibrary = Path.of(
-                "target", "classes", "native", "linux-" + architecture,
+                "target", "classes", "native", operatingSystem + "-" + architecture,
                 System.mapLibraryName("learning_types"));
 
         System.load(nativeLibrary.toAbsolutePath().toString());

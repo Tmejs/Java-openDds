@@ -16,12 +16,17 @@ shift 4
 ROOT_DIR="${DDS_PROJECT_ROOT:-/workspace}"
 OPENDDS_ROOT="${DDS_ROOT:-/opt/OpenDDS-3.34.0}"
 CLASSPATH="$ROOT_DIR/$APP_MODULE/target/classes:$ROOT_DIR/dds-types/target/classes:$OPENDDS_ROOT/lib/*"
-NATIVE_PATH="$ROOT_DIR/dds-types/target/classes/native/linux-aarch64:$ROOT_DIR/dds-types/target/classes/native/linux-x86_64:$OPENDDS_ROOT/lib:$ACE_ROOT/lib"
+NATIVE_PLATFORM="$("$(dirname -- "$0")/native-platform.sh")"
+NATIVE_PATH="$ROOT_DIR/dds-types/target/classes/native/$NATIVE_PLATFORM:$OPENDDS_ROOT/lib:$ACE_ROOT/lib"
+JAVA_EXECUTABLE="${JAVA_HOME:+$JAVA_HOME/bin/java}"
+JAVA_EXECUTABLE="${JAVA_EXECUTABLE:-java}"
+# On macOS, setting this inside the launcher avoids /usr/bin/env stripping it.
+export DYLD_LIBRARY_PATH="$OPENDDS_ROOT/lib:$ACE_ROOT/lib:${DYLD_LIBRARY_PATH:-}"
 
 printf 'RUN_MODE=%s DATA_TRANSPORT=%s role=%s discovery_config=%s\n' \
   "$RUN_MODE" "$DATA_TRANSPORT" "$MAIN_CLASS" "$DDS_CONFIG_FILE"
 
-exec java --enable-native-access=ALL-UNNAMED \
+exec "$JAVA_EXECUTABLE" --enable-native-access=ALL-UNNAMED \
   -Djava.library.path="$NATIVE_PATH" \
   -cp "$CLASSPATH" \
   "$MAIN_CLASS" "$@" \

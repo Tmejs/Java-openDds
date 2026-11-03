@@ -9,10 +9,18 @@ if [[ -z "${DDS_ROOT:-}" || ! -f "${DDS_ROOT}/setenv.sh" ]]; then
   exit 1
 fi
 
-# OpenDDS's setup script appends to this variable; initialize it for strict mode.
+# OpenDDS's setup script appends to these variables; initialize them for strict mode.
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"
+export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH:-}"
 # shellcheck source=/dev/null
 source "${DDS_ROOT}/setenv.sh"
+
+case "$(uname -s)" in
+  Darwin) hash_command=(shasum -a 256) ;;
+  Linux) hash_command=(sha256sum) ;;
+  *) echo "error: unsupported native operating system: $(uname -s)" >&2; exit 1 ;;
+esac
+native_platform="$("${module_dir}/../scripts/native-platform.sh")"
 
 build_dir="${module_dir}/target/opendds"
 java_sources="${module_dir}/target/generated-sources/opendds"
@@ -20,12 +28,13 @@ generation_fingerprint_file="${build_dir}/.generation-inputs.sha256"
 generation_fingerprint="$(
   {
     printf 'DDS_ROOT=%s\n' "${DDS_ROOT}"
-    printf 'architecture=%s\n' "$(uname -m)"
-    sha256sum \
-      "${module_dir}/src/main/idl/Learning.idl" \
-      "${module_dir}/src/main/mpc/Learning.mpc" \
-      "${BASH_SOURCE[0]}"
-  } | sha256sum | awk '{print $1}'
+    printf 'platform=%s\n' "${native_platform}"
+    "${hash_command[@]}" \
+    "${module_dir}/src/main/idl/Learning.idl" \
+    "${module_dir}/src/main/mpc/Learning.mpc" \
+    "${module_dir}/../scripts/native-platform.sh" \
+    "${BASH_SOURCE[0]}"
+  } | "${hash_command[@]}" | awk '{print $1}'
 )"
 
 # MPC and javac do not reliably remove outputs for deleted generated types.
@@ -83,25 +92,18 @@ while IFS= read -r -d '' generated_file; do
   fi
 done < <(find "${java_sources}/Learning" -type f -name '*.java' -print0)
 
-native_arch="$(uname -m)"
-case "${native_arch}" in
-  x86_64) native_arch="x86_64" ;;
-  aarch64|arm64) native_arch="aarch64" ;;
-  *)
-    echo "error: unsupported Linux native-library architecture: ${native_arch}" >&2
-    exit 1
-    ;;
-esac
-
-native_dir="${module_dir}/target/classes/native/linux-${native_arch}"
+native_dir="${module_dir}/target/classes/native/${native_platform}"
 mkdir -p "${native_dir}"
 shopt -s nullglob
-native_libraries=("${build_dir}"/liblearning_types.so*)
+case "${native_platform}" in
+  macos-*) native_libraries=("${build_dir}"/liblearning_types.dylib*) ;;
+  linux-*) native_libraries=("${build_dir}"/liblearning_types.so*) ;;
+esac
 if ((${#native_libraries[@]} == 0)); then
-  echo "error: MPC build did not produce liblearning_types.so" >&2
+  echo "error: MPC build did not produce the native learning_types library" >&2
   exit 1
 fi
-cp -au "${native_libraries[@]}" "${native_dir}/"
+cp -p "${native_libraries[@]}" "${native_dir}/"
 
 printf '%s\n' "${generation_fingerprint}" > "${generation_fingerprint_file}"
 
