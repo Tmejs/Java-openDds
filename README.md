@@ -40,8 +40,10 @@ The project pins the following build environment in
 | Container OS | Ubuntu Noble |
 | Verified container architecture | Linux ARM64 |
 
-Linux x86-64 native-library packaging is implemented, but this repository has
-only been executed and verified on Linux ARM64 containers so far.
+Linux x86-64 native-library packaging is implemented. The Docker scenarios
+are verified on Linux ARM64. Native macOS ARM64 compilation and local TCP
+ping/pong are also verified with Java 25 and OpenDDS 3.34.0; the IntelliJ
+Application setup uses the same JVM arguments and environment.
 
 ## Prerequisites
 
