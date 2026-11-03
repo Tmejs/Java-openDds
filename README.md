@@ -13,6 +13,11 @@ Both topologies run the same IDL-generated types and Java applications. That
 keeps the comparison focused on discovery and transport behavior instead of
 duplicating application code.
 
+On macOS, the ping/pong application can also run directly from IntelliJ over
+TCP. See the [native macOS and IntelliJ guide](docs/intellij-macos-tcp.md).
+OpenDDS 3.34.0 shared-memory transport is unsupported on this macOS setup;
+use the Linux container for that lab.
+
 The labs provide:
 
 - a correlated ping/pong tool with warmup and round-trip p50, p95, and p99;
@@ -43,8 +48,10 @@ only been executed and verified on Linux ARM64 containers so far.
 Install Git and Docker Engine or Docker Desktop with Docker Compose v2. Allow
 enough disk space and time for the first OpenDDS builder image build.
 
-Java, Maven, OpenDDS, a C++ compiler, and the IDL tools run inside the pinned
-builder image. A host JDK or host Maven installation is not required.
+For the Docker quick start, Java, Maven, OpenDDS, a C++ compiler, and the IDL
+tools run inside the pinned builder image. A host JDK or host Maven installation
+is not required. The native macOS IntelliJ path has separate host prerequisites
+in its guide.
 
 ```bash
 git clone https://github.com/Tmejs/Java-openDds.git
